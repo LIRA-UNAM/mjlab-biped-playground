@@ -90,7 +90,7 @@ Key characteristics:
 curl -LsSf https://astral.sh/uv/install.sh | sh
 
 # Clone and run
-git clone https://github.com/menloresearch/asimov-mjlab.git
+git clone git@github.com:LIRA-UNAM/mjlab-biped-playground.git
 cd asimov-mjlab
 uv sync
 ```
