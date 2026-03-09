@@ -91,7 +91,7 @@ curl -LsSf https://astral.sh/uv/install.sh | sh
 
 # Clone and run
 git clone git@github.com:LIRA-UNAM/mjlab-biped-playground.git
-cd asimov-mjlab
+cd mjlab-biped-playground
 uv sync
 ```
 
