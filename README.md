@@ -1,12 +1,12 @@
 # Asimov Locomotion
 
-Fork of [mujocolab/mjlab](https://github.com/mujocolab/mjlab) for the Asimov bipedal robot.
+This repo is a fork from [asimovinc/asimov-mjlab](https://github.com/asimovinc/asimov-mjlab), but we are also including the Unitree G1, Booster (K1 and T1), as well as the new robotic platform.
 
-<p align="center">
+<!-- <p align="center">
   <img src="docs/static/asimov_cad.png" alt="Asimov CAD" height="400"/>
   &nbsp;&nbsp;&nbsp;&nbsp;
   <img src="docs/static/asimov_robot.jpeg" alt="Asimov Robot" height="400"/>
-</p>
+</p> -->
 
 ---
 
@@ -84,7 +84,8 @@ Key characteristics:
 ---
 
 ## Quick Start
-
+> [!NOTE]  
+The following setup has only been tested in NVIDIA 4060 and NVIDIA 5080 GPUs. We don't know (yet) if this setup works on CPU only.
 ```bash
 # Install uv if you haven't already
 curl -LsSf https://astral.sh/uv/install.sh | sh
@@ -93,24 +94,28 @@ curl -LsSf https://astral.sh/uv/install.sh | sh
 git clone git@github.com:LIRA-UNAM/mjlab-biped-playground.git
 cd mjlab-biped-playground
 uv sync
+#If you get dependency errors, try using a more up-to-date version of the package that is failing
 ```
 
 ### Train Asimov Velocity Policy
-
+> [!IMPORTANT]
+You first need to create a WANDB account, once you login, the script will ask you for the API key to connect the training with your account.
 ```bash
 uv run train Mjlab-Velocity-Flat-Asimov --env.scene.num-envs 4096
 ```
 
-### Evaluate Policy
+### Evaluate Policy (Flat Terrain)
 
 ```bash
-uv run play Mjlab-Velocity-Flat-Asimov --wandb-run-path your-org/mjlab/run-id
+uv run play Mjlab-Velocity-Flat-Asimov --wandb-run-path /path/to/my/wandb
+```
+
+### Evaluate Policy (Rough Terrain with stairs)
+```bash
+uv run play Mjlab-Velocity-Rough-Asimov --wandb-run-path /path/to/my/wandb
 ```
 
 ---
 
 ## License
-
-Licensed under the [Apache License, Version 2.0](LICENSE).
-
 Based on [mjlab](https://github.com/mujocolab/mjlab) by MuJoCo Lab.
