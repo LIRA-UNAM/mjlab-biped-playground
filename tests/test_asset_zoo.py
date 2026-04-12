@@ -1,7 +1,7 @@
 import mujoco
 import pytest
-
 from mjlab.asset_zoo.robots import get_g1_robot_cfg, get_go1_robot_cfg
+
 from mjlab.entity import Entity
 
 

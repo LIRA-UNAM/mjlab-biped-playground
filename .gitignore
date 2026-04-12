@@ -14,3 +14,4 @@ artifacts/
 .venv/
 render_robots.py
 benchmark_results/
+.ruff_cache/

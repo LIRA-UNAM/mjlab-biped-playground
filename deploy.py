@@ -18,6 +18,7 @@ Observation tensor layout (47 dims - mjlab Asimov with gait_clock):
 """
 
 import os
+
 os.environ["MUJOCO_GL"] = "egl"
 
 import argparse
@@ -32,7 +33,6 @@ import numpy as np
 import onnx
 import onnxruntime as ort
 import pandas as pd
-
 
 # ============================================================================
 # Configuration
@@ -184,7 +184,7 @@ def analyze_results(csv_path, joint_names, output_prefix):
     print("TRACKING ERROR ANALYSIS")
     print("=" * 70)
 
-    print(f"\nStability Metrics:")
+    print("\nStability Metrics:")
     print(f"  Pelvis height: {df['pelvis_z'].mean():.3f} +/- {df['pelvis_z'].std():.4f} m")
     print(f"  Gravity Z:     {df['grav_z'].mean():.3f} +/- {df['grav_z'].std():.4f} (upright = -1.0)")
 
@@ -204,7 +204,7 @@ def analyze_results(csv_path, joint_names, output_prefix):
     axes = axes.flatten()
     fig.suptitle("Target vs Actual Joint Positions", fontsize=14, fontweight='bold')
 
-    for i, (ax, short) in enumerate(zip(axes, short_names)):
+    for i, (ax, short) in enumerate(zip(axes, short_names, strict=True)):
         if f"tgt_{short}" not in df.columns:
             continue
         tgt = df[f"tgt_{short}"].values
@@ -344,7 +344,7 @@ def main():
     action_scale = np.array(parse_csv_floats(metadata["action_scale"]), dtype=np.float32)
     observation_names = metadata["observation_names"].split(",")
 
-    print(f"\nExtracted from ONNX metadata:")
+    print("\nExtracted from ONNX metadata:")
     print(f"  Joint names: {joint_names}")
     print(f"  KP: {kps}")
     print(f"  KD: {kds}")
@@ -462,9 +462,6 @@ def main():
 
     for step_idx in range(total_steps):
         # Get current joint state
-        q = d.qpos[qpos_ids]
-        dq = d.qvel[qvel_ids]
-
         # With position actuators, send position targets directly
         # MuJoCo's built-in PD controller handles torque computation
         d.ctrl[:] = target_dof_pos
@@ -584,7 +581,7 @@ def main():
     print(f"\nSimulation completed in {elapsed:.2f}s (real time)")
 
     print(f"\n{'=' * 60}")
-    print(f"Simulation complete!")
+    print("Simulation complete!")
     print(f"  Total frames: {frame_counter}")
     print(f"  Video saved: {video_output}")
     print(f"  CSV saved: {csv_output}")
