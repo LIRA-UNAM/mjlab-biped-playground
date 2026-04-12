@@ -1,9 +1,9 @@
 """Booster T1 getup environment configuration."""
 
-from mjlab_playground.asset_zoo.robots.booster_t1.t1_constants import get_t1_robot_cfg
-from mjlab_playground.getup import mdp
-from mjlab_playground.getup.getup_env_cfg import make_getup_env_cfg
-from mjlab_playground.getup.mdp.actions import SettleRelativeJointPositionActionCfg
+from playground.asset_zoo.robots.booster_t1.t1_constants import get_t1_robot_cfg
+from playground.tasks.getup import mdp
+from playground.tasks.getup.getup_env_cfg import make_getup_env_cfg
+from playground.tasks.getup.mdp.actions import SettleRelativeJointPositionActionCfg
 
 from mjlab.envs import ManagerBasedRlEnvCfg
 from mjlab.envs import mdp as envs_mdp
