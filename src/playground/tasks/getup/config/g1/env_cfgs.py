@@ -15,7 +15,7 @@ from mjlab.sensor import ContactMatch, ContactSensorCfg
 
 # Derived from home keyframe.
 _TORSO_HEIGHT = 0.80
-_WAIST_HEIGHT = 0.68
+_WAIST_HEIGHT = 0.76
 
 
 def unitree_g1_getup_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
@@ -46,14 +46,14 @@ def unitree_g1_getup_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
   # minimum where torso is high but waist (pelvis) stays near ground.
   cfg.rewards["torso_height"].params["desired_height"] = _TORSO_HEIGHT
   cfg.rewards["torso_height"].params["asset_cfg"] = SceneEntityCfg(
-    "robot", body_names=("pelvis",)
+    "robot", body_names=("torso_link",)
   )
   cfg.rewards["waist_height"] = RewardTermCfg(
     func=mdp.height_reward,
     weight=1.0,
     params={
       "desired_height": _WAIST_HEIGHT,
-      "asset_cfg": SceneEntityCfg("robot", body_names=("waist_yaw_link",)),
+      "asset_cfg": SceneEntityCfg("robot", body_names=("pelvis",)),
     },
   )
   cfg.metrics["getup_success"].params["desired_height"] = _TORSO_HEIGHT

@@ -139,7 +139,7 @@ def make_getup_env_cfg() -> ManagerBasedRlEnvCfg:
       func=mdp.getup_success,
       reduce="last",
       params={
-        "height_tolerance": 0.05,
+        "height_tolerance": 0.02,
         "orientation_threshold": 0.05,
       },  # Set desired_height per-robot.
     ),
