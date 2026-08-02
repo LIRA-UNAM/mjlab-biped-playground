@@ -150,7 +150,7 @@ def unitree_g1_getup_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
       params={
         "termination_name": "energy",
         "stages": [
-          {"step": 1500 * 24, "params": {"threshold": 3000.0}},
+          {"step": 2000 * 24, "params": {"threshold": 5000.0}},
         ],
       },
     ),
