@@ -199,17 +199,17 @@ def make_getup_env_cfg() -> ManagerBasedRlEnvCfg:
         ],
       },
     ),
-    "energy_threshold": CurriculumTermCfg(
-      func=mdp.termination_curriculum,
-      params={
-        "termination_name": "energy",
-        "stages": [
-          {"step": 500 * 24, "params": {"threshold": 1000.0}},
-          {"step": 900 * 24, "params": {"threshold": 700.0}},
-          {"step": 1200 * 24, "params": {"threshold": 400.0}},
-        ],
-      },
-    ),
+    # "energy_threshold": CurriculumTermCfg(
+    #   func=mdp.termination_curriculum,
+    #   params={
+    #     "termination_name": "energy",
+    #     "stages": [
+    #       {"step": 500 * 24, "params": {"threshold": 1000.0}},
+    #       {"step": 900 * 24, "params": {"threshold": 700.0}},
+    #       {"step": 1200 * 24, "params": {"threshold": 400.0}},
+    #     ],
+    #   },
+    # ),
   }
 
   ##
