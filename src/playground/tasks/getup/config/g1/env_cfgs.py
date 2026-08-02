@@ -145,19 +145,15 @@ def unitree_g1_getup_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
         ],
       },
     ),
-    # "energy_threshold": CurriculumTermCfg(
-    #   func=mdp.termination_curriculum,
-    #   params={
-    #     "termination_name": "energy",
-    #     "stages": [
-    #       {"step": 900 * 24, "params": {"threshold": 3000.0}},
-    #       {"step": 1200 * 24, "params": {"threshold": 2000.0}},
-    #       {"step": 1500 * 24, "params": {"threshold": 1500.0}},
-    #       {"step": 1700 * 24, "params": {"threshold": 1000.0}},
-    #       {"step": 2200 * 24, "params": {"threshold": 700.0}},
-    #     ],
-    #   },
-    # ),
+    "energy_threshold": CurriculumTermCfg(
+      func=mdp.termination_curriculum,
+      params={
+        "termination_name": "energy",
+        "stages": [
+          {"step": 1500 * 24, "params": {"threshold": 3000.0}},
+        ],
+      },
+    ),
   }
 
   if play:
