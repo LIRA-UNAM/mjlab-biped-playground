@@ -1,4 +1,4 @@
-"""RL configuration for Unitree G1 getup task."""
+"""RL configuration for Booster T2 getup task."""
 
 from mjlab.rl import (
   RslRlModelCfg,
@@ -7,8 +7,8 @@ from mjlab.rl import (
 )
 
 
-def unitree_g1_getup_ppo_runner_cfg() -> RslRlOnPolicyRunnerCfg:
-  """Create RL runner configuration for Unitree G1 getup task."""
+def booster_t2_getup_ppo_runner_cfg() -> RslRlOnPolicyRunnerCfg:
+  """Create RL runner configuration for Booster T2 getup task."""
   return RslRlOnPolicyRunnerCfg(
     actor=RslRlModelCfg(
       hidden_dims=(512, 256, 128),
@@ -39,8 +39,8 @@ def unitree_g1_getup_ppo_runner_cfg() -> RslRlOnPolicyRunnerCfg:
       desired_kl=0.01,
       max_grad_norm=1.0,
     ),
-    experiment_name="g1_getup",
-    wandb_project="mjlab-biped-playground",
+    experiment_name="t2_getup",
+    wandb_project="mjlab_playground",
     save_interval=300,
     num_steps_per_env=24,
     max_iterations=3_000,

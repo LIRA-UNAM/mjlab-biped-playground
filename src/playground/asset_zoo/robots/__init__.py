@@ -10,6 +10,12 @@ from playground.asset_zoo.robots.booster_t1.t1_constants import (
 from playground.asset_zoo.robots.booster_t1.t1_constants import (
   get_t1_robot_cfg as get_t1_robot_cfg,
 )
+from playground.asset_zoo.robots.booster_t2.t2_constants import (
+  T2_ACTION_SCALE as T2_ACTION_SCALE,
+)
+from playground.asset_zoo.robots.booster_t2.t2_constants import (
+  get_t2_robot_cfg as get_t2_robot_cfg,
+)
 from playground.asset_zoo.robots.unitree_g1.g1_constants import (
   G1_ACTION_SCALE as G1_ACTION_SCALE,
 )

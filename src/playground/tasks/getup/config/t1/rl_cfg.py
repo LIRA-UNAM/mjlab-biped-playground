@@ -41,7 +41,7 @@ def booster_t1_getup_ppo_runner_cfg() -> RslRlOnPolicyRunnerCfg:
     ),
     experiment_name="t1_getup",
     wandb_project="mjlab_playground",
-    save_interval=50,
+    save_interval=300,
     num_steps_per_env=24,
     max_iterations=3_000,
   )
