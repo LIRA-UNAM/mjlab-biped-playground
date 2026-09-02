@@ -160,7 +160,9 @@ def booster_t2_getup_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
       params={
         "termination_name": "energy",
         "stages": [
-          {"step": 2000 * 24, "params": {"threshold": 100000.0}},
+          {"step": 2000 * 24, "params": {"threshold": 40000.0}},
+          {"step": 2500 * 24, "params": {"threshold": 20000.0}},
+          {"step": 2700 * 24, "params": {"threshold": 10000.0}},
         ],
       },
     ),

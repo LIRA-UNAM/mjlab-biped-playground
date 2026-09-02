@@ -40,7 +40,7 @@ def unitree_g1_getup_ppo_runner_cfg() -> RslRlOnPolicyRunnerCfg:
       max_grad_norm=1.0,
     ),
     experiment_name="g1_getup",
-    wandb_project="mjlab-biped-playground",
+    wandb_project="mjlab_playground",
     save_interval=300,
     num_steps_per_env=24,
     max_iterations=3_000,
