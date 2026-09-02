@@ -1,118 +1,84 @@
-# Asimov Locomotion
+# mjlab Biped Playground
 
-This repo is a fork from [asimovinc/asimov-mjlab](https://github.com/asimovinc/asimov-mjlab), but we are also including the Unitree G1, Booster (K1 and T1), as well as the new robotic platform.
-
-<!-- <p align="center">
-  <img src="docs/static/asimov_cad.png" alt="Asimov CAD" height="400"/>
-  &nbsp;&nbsp;&nbsp;&nbsp;
-  <img src="docs/static/asimov_robot.jpeg" alt="Asimov Robot" height="400"/>
-</p> -->
+This repo is a fork of [asimovinc/asimov-mjlab](https://github.com/asimovinc/asimov-mjlab), narrowed down to a playground for **bipedal humanoid robots** built on [mjlab](https://github.com/mujocolab/mjlab). It currently targets four platforms: **Booster T1**, **Unitree G1**, **Booster T2**, and **Asimov**.
 
 ---
 
-## Demo
+## Robots
 
-**Sim2Sim in MuJoCo** - Multi-directional velocity tracking:
+| Robot | Asset | Trainable tasks |
+|-------|-------|------------------|
+| **Booster T1** | ✅ `asset_zoo/robots/booster_t1` | `Mjlab-Getup-Flat-Booster-T1` |
+| **Unitree G1** | ✅ `asset_zoo/robots/unitree_g1` | `Mjlab-Getup-Flat-Unitree-G1` |
+| **Booster T2** | ✅ `asset_zoo/robots/booster_t2` | `Mjlab-Getup-Flat-Booster-T2` |
+| **Asimov** | ✅ `asset_zoo/robots/asimov` | _none yet — asset only_ |
 
-<p align="center">
-  <img src="docs/static/asimov_sim2sim.gif" alt="Asimov Sim2Sim Demo" width="600"/>
-</p>
-
----
-
-## Robot Modeling
-
-**12-DOF bipedal** (6 per leg): `hip_pitch`, `hip_roll`, `hip_yaw`, `knee`, `ankle_pitch`, `ankle_roll`
-
-Key characteristics:
-- **Canted hip pitch axis** (45° tilt) - unique kinematics vs standard humanoids
-- **Asymmetric left/right joint axes** - opposite signs for symmetric motion
-- **Narrow stance** (11.3cm) - requires conservative velocity limits
+The original velocity-tracking tasks (flat/rough terrain locomotion) from the upstream project were removed and have not been ported to this repo yet. Asimov is wired into the asset zoo (MJCF, actuator configs, home keyframe) but doesn't have a registered `train`/`play` task yet — contributions welcome.
 
 ---
 
-## Training
+## Tasks
 
-### Reward Structure
+### Getup (fall recovery)
 
-| Reward | Description |
-|--------|-------------|
-| **Velocity tracking** | Track commanded (vx, vy, ωz) |
-| **Imitation** | Match walking reference @ 1.25Hz gait |
-| **Alternating feet** | Enforce bipedal gait pattern |
-| **Pose** | Joint-specific variance (larger for canted hips, tight for ankles) |
-| **Air time** | Encourage dynamic stepping (light robot) |
-| **Self-collision** | Penalize inter-link collisions |
+Teaches the robot to stand back up from a fallen pose on flat terrain.
 
-### Configuration
+| Task ID | Robot |
+|---------|-------|
+| `Mjlab-Getup-Flat-Booster-T1` | Booster T1 |
+| `Mjlab-Getup-Flat-Unitree-G1` | Unitree G1 |
+| `Mjlab-Getup-Flat-Booster-T2` | Booster T2 |
 
-- PPO with adaptive LR, 5k iterations
-- Terrain curriculum
-- Network: `(256, 256, 128)` - sized for 12-DOF
+Configs live under `src/playground/tasks/getup/config/<robot>/`.
 
-### Adaptations vs G1
+### Demos
 
-- Conservative velocity limits due to narrow 11.3cm stance
-- Higher `body_ang_vel` penalty (-0.08) for narrow-stance stability
-- Tight ankle pose constraints (limited ROM: ~±30° pitch, ±6° roll)
-- Larger hip variance in pose reward (canted axis couples roll/pitch)
-- Gait clock observation for phase-aware control
+<!-- Placeholder GIFs — replace with actual play-mode recordings per task. -->
 
----
-
-## Observations (Policy)
-
-| Observation | Source |
-|-------------|--------|
-| `base_ang_vel` | IMU |
-| `projected_gravity` | IMU |
-| `velocity_command` | (vx, vy, ωz) |
-| `joint_pos` | Relative to default pose |
-| `joint_vel` | Joint velocities |
-| `previous_actions` | Action history |
-| `gait_clock` | [cos(φ), sin(φ)] @ 1.25Hz for phase-aware control |
-
-**Removed:** `base_lin_vel` (no state estimator on real robot)
-
----
-
-## Sim2Real
-
-- **Physics-based PD gains:** KP = J_reflected × ωn² (10Hz), KD = 5.0 Nm·s/rad (hardware max)
-- **Zero pose** used as default (mechanically stable)
+| GIF | Description | Play Command |
+|-----|-------|--------------|
+| <img src="docs/static/asimov_sim2sim.gif" width="300"/><br/>**Mjlab-Getup-Flat-Booster-T1** | Booster T1 recovers from a fallen pose and stands back up on flat terrain. | `uv run play Mjlab-Getup-Flat-Booster-T1 --wandb-run-path /path/to/my/wandb` |
+| <img src="docs/static/asimov_sim2sim.gif" width="300"/><br/>**Mjlab-Getup-Flat-Unitree-G1** | Unitree G1 recovers from a fallen pose and stands back up on flat terrain. | `uv run play Mjlab-Getup-Flat-Unitree-G1 --wandb-run-path /path/to/my/wandb` |
+| <img src="docs/static/asimov_sim2sim.gif" width="300"/><br/>**Mjlab-Getup-Flat-Booster-T2** | Booster T2 recovers from a fallen pose and stands back up on flat terrain. | `uv run play Mjlab-Getup-Flat-Booster-T2 --wandb-run-path /path/to/my/wandb` |
 
 ---
 
 ## Quick Start
-> [!NOTE]  
-The following setup has only been tested in NVIDIA 4060 and NVIDIA 5080 GPUs. We don't know (yet) if this setup works on CPU only.
+> [!NOTE]
+> The following setup has only been tested on NVIDIA 4060 and NVIDIA 5080 GPUs. We don't know (yet) if this setup works on CPU only.
+
 ```bash
 # Install uv if you haven't already
 curl -LsSf https://astral.sh/uv/install.sh | sh
 
 # Clone and run
-git clone git@github.com:LIRA-UNAM/mjlab-biped-playground.git
+git clone https://github.com/LIRA-UNAM/mjlab-biped-playground.git
 cd mjlab-biped-playground
 uv sync
-#If you get dependency errors, try using a more up-to-date version of the package that is failing
+# If you get dependency errors, try using a more up-to-date version of the package that is failing
 ```
 
-### Train Asimov Velocity Policy
+### Train
+
 > [!IMPORTANT]
-You first need to create a WANDB account, once you login, the script will ask you for the API key to connect the training with your account.
+> You first need to create a WANDB account. Once you log in, the script will ask you for the API key to connect training with your account.
+
 ```bash
-uv run train Mjlab-Velocity-Flat-Asimov --env.scene.num-envs 4096
+uv run train Mjlab-Getup-Flat-Booster-T1 --env.scene.num-envs 4096
+# or
+uv run train Mjlab-Getup-Flat-Unitree-G1 --env.scene.num-envs 4096
+# or
+uv run train Mjlab-Getup-Flat-Booster-T2 --env.scene.num-envs 4096
 ```
 
-### Evaluate Policy (Flat Terrain)
+### Evaluate Policy
 
 ```bash
-uv run play Mjlab-Velocity-Flat-Asimov --wandb-run-path /path/to/my/wandb
-```
-
-### Evaluate Policy (Rough Terrain with stairs)
-```bash
-uv run play Mjlab-Velocity-Rough-Asimov --wandb-run-path /path/to/my/wandb
+uv run play Mjlab-Getup-Flat-Booster-T1 --wandb-run-path /path/to/my/wandb
+# or
+uv run play Mjlab-Getup-Flat-Unitree-G1 --wandb-run-path /path/to/my/wandb
+# or
+uv run play Mjlab-Getup-Flat-Booster-T2 --wandb-run-path /path/to/my/wandb
 ```
 
 ---

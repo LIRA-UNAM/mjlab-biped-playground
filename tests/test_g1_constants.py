@@ -5,8 +5,8 @@ import re
 import mujoco
 import numpy as np
 import pytest
-
 from mjlab.asset_zoo.robots.unitree_g1 import g1_constants
+
 from mjlab.entity import Entity
 from mjlab.utils.string import resolve_expr
 

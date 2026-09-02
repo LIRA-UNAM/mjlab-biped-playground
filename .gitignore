@@ -14,3 +14,6 @@ artifacts/
 .venv/
 render_robots.py
 benchmark_results/
+.ruff_cache/
+CLAUDE.local.md
+.claude/settings.local.json
