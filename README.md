@@ -11,7 +11,7 @@ This repo is a fork of [asimovinc/asimov-mjlab](https://github.com/asimovinc/asi
 | **Booster T1** | ✅ `asset_zoo/robots/booster_t1` | `Mjlab-Getup-Flat-Booster-T1` |
 | **Unitree G1** | ✅ `asset_zoo/robots/unitree_g1` | `Mjlab-Getup-Flat-Unitree-G1` |
 | **Booster T2** | ✅ `asset_zoo/robots/booster_t2` | `Mjlab-Getup-Flat-Booster-T2` |
-| **Asimov** | ✅ `asset_zoo/robots/asimov` | _none yet — asset only_ |
+| **Asimov** | ✅ `asset_zoo/robots/asimov` | Velocity task in progress... |
 
 The original velocity-tracking tasks (flat/rough terrain locomotion) from the upstream project were removed and have not been ported to this repo yet. Asimov is wired into the asset zoo (MJCF, actuator configs, home keyframe) but doesn't have a registered `train`/`play` task yet — contributions welcome.
 
@@ -37,9 +37,9 @@ Configs live under `src/playground/tasks/getup/config/<robot>/`.
 
 | GIF | Description | Play Command |
 |-----|-------|--------------|
-| <img src="docs/static/asimov_sim2sim.gif" width="300"/><br/>**Mjlab-Getup-Flat-Booster-T1** | Booster T1 recovers from a fallen pose and stands back up on flat terrain. | `uv run play Mjlab-Getup-Flat-Booster-T1 --wandb-run-path /path/to/my/wandb` |
-| <img src="docs/static/asimov_sim2sim.gif" width="300"/><br/>**Mjlab-Getup-Flat-Unitree-G1** | Unitree G1 recovers from a fallen pose and stands back up on flat terrain. | `uv run play Mjlab-Getup-Flat-Unitree-G1 --wandb-run-path /path/to/my/wandb` |
-| <img src="docs/static/asimov_sim2sim.gif" width="300"/><br/>**Mjlab-Getup-Flat-Booster-T2** | Booster T2 recovers from a fallen pose and stands back up on flat terrain. | `uv run play Mjlab-Getup-Flat-Booster-T2 --wandb-run-path /path/to/my/wandb` |
+| <img src="docs/static/t1_getup.gif" width="300"/><br/>**Mjlab-Getup-Flat-Booster-T1** | Booster T1 recovers from a fallen pose and stands back up on flat terrain. | `uv run play Mjlab-Getup-Flat-Booster-T1 --wandb-run-path /path/to/my/wandb` |
+| <img src="docs/static/g1_getup.gif" width="300"/><br/>**Mjlab-Getup-Flat-Unitree-G1** | Unitree G1 recovers from a fallen pose and stands back up on flat terrain. | `uv run play Mjlab-Getup-Flat-Unitree-G1 --wandb-run-path /path/to/my/wandb` |
+| <img src="docs/static/t2_getup.gif" width="300"/><br/>**Mjlab-Getup-Flat-Booster-T2** | Booster T2 recovers from a fallen pose and stands back up on flat terrain. | `uv run play Mjlab-Getup-Flat-Booster-T2 --wandb-run-path /path/to/my/wandb` |
 
 ---
 
