@@ -44,19 +44,21 @@ Teaches the robot to track commanded linear/angular velocities while walking, on
 
 Configs live under `src/playground/tasks/velocity/config/<robot>/`.
 
-### Demos
+### Getup Tasks
 
 <!-- Placeholder GIFs — replace with actual play-mode recordings per task. -->
 
 | GIF | Description | Play Command |
 |-----|-------|--------------|
-| <img src="docs/static/t1_getup.gif" width="300"/><br/>**Mjlab-Getup-Flat-Booster-T1** | Booster T1 recovers from a fallen pose and stands back up on flat terrain. | `uv run play Mjlab-Getup-Flat-Booster-T1 --wandb-run-path /path/to/my/wandb` |
-| <img src="docs/static/g1_getup.gif" width="300"/><br/>**Mjlab-Getup-Flat-Unitree-G1** | Unitree G1 recovers from a fallen pose and stands back up on flat terrain. | `uv run play Mjlab-Getup-Flat-Unitree-G1 --wandb-run-path /path/to/my/wandb` |
-| <img src="docs/static/t2_getup.gif" width="300"/><br/>**Mjlab-Getup-Flat-Booster-T2** | Booster T2 recovers from a fallen pose and stands back up on flat terrain. | `uv run play Mjlab-Getup-Flat-Booster-T2 --wandb-run-path /path/to/my/wandb` |
-| <img src="docs/static/cartpole_trained.gif" width="300"/><br/>**Mjlab-Velocity-Flat-Booster-T1** | Booster T1 tracks commanded velocity on flat terrain. | `uv run play Mjlab-Velocity-Flat-Booster-T1 --wandb-run-path /path/to/my/wandb` |
-| <img src="docs/static/nan_debug.gif" width="300"/><br/>**Mjlab-Velocity-Rough-Booster-T1** | Booster T1 tracks commanded velocity on rough terrain. | `uv run play Mjlab-Velocity-Rough-Booster-T1 --wandb-run-path /path/to/my/wandb` |
-| <img src="docs/static/asimov_sim2sim.gif" width="300"/><br/>**Mjlab-Velocity-Flat-Asimov** | Asimov tracks commanded velocity on flat terrain. | `uv run play Mjlab-Velocity-Flat-Asimov --wandb-run-path /path/to/my/wandb` |
-| <img src="docs/static/g1_getup.gif" width="300"/><br/>**Mjlab-Velocity-Rough-Asimov** | Asimov tracks commanded velocity on rough terrain. | `uv run play Mjlab-Velocity-Rough-Asimov --wandb-run-path /path/to/my/wandb` |
+| <img src="docs/static/t1_getup.gif" width="400"/><br/>**Mjlab-Getup-Flat-Booster-T1** | Booster T1 recovers from a fallen pose and stands back up on flat terrain. | `uv run play Mjlab-Getup-Flat-Booster-T1 --wandb-run-path /path/to/my/wandb` |
+| <img src="docs/static/g1_getup.gif" width="400"/><br/>**Mjlab-Getup-Flat-Unitree-G1** | Unitree G1 recovers from a fallen pose and stands back up on flat terrain. | `uv run play Mjlab-Getup-Flat-Unitree-G1 --wandb-run-path /path/to/my/wandb` |
+| <img src="docs/static/t2_getup.gif" width="400"/><br/>**Mjlab-Getup-Flat-Booster-T2** | Booster T2 recovers from a fallen pose and stands back up on flat terrain. | `uv run play Mjlab-Getup-Flat-Booster-T2 --wandb-run-path /path/to/my/wandb` |
+
+### Velocity Tasks
+| GIF | Description | Play Command |
+|-----|-------|--------------|
+| <img src="docs/static/t1_vel.gif" width="400"/><br/>**Mjlab-Velocity-Flat-Booster-T1** | Booster T1 tracks commanded velocity on flat terrain. | `uv run play Mjlab-Velocity-Flat-Booster-T1 --wandb-run-path /path/to/my/wandb` |
+| <img src="docs/static/asimov.gif" width="400"/><br/>**Mjlab-Velocity-Flat-Asimov** | Asimov tracks commanded velocity on flat terrain. | `uv run play Mjlab-Velocity-Flat-Asimov --wandb-run-path /path/to/my/wandb` |
 
 ---
 
