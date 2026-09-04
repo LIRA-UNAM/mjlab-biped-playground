@@ -27,19 +27,19 @@ ASIMOV_XML: Path = Path(__file__).parent / "xmls" / "asimov.xml"
 assert ASIMOV_XML.exists()
 
 ASIMOV_WALKING_REFERENCE: Path = (
-    Path(__file__).parent / "assets" / "walking_reference.csv"
+  Path(__file__).parent / "assets" / "walking_reference.csv"
 )
 
 
 def get_assets(meshdir: str) -> dict[str, bytes]:
-    assets: dict[str, bytes] = {}
-    return assets
+  assets: dict[str, bytes] = {}
+  return assets
 
 
 def get_spec() -> mujoco.MjSpec:
-    spec = mujoco.MjSpec.from_file(str(ASIMOV_XML))
-    spec.assets = get_assets(spec.meshdir)
-    return spec
+  spec = mujoco.MjSpec.from_file(str(ASIMOV_XML))
+  spec.assets = get_assets(spec.meshdir)
+  return spec
 
 
 ##
@@ -83,49 +83,49 @@ DAMPING_ANKLE = 5.0
 
 # Effort limits (peak torque from datasheets)
 EFFORT_HIP_PITCH = 120.0  # EC-A6416-P2-25: peak 120 Nm
-EFFORT_HIP_ROLL = 90.0    # EC-A5013-H17-100: peak 90 Nm
-EFFORT_HIP_YAW = 60.0     # EC-A3814-H14-107: peak 60 Nm
-EFFORT_KNEE = 75.0        # EC-A4315-P2-36: peak 75 Nm
-EFFORT_ANKLE = 36.0       # EC-A4310-P2-36: peak 36 Nm
+EFFORT_HIP_ROLL = 90.0  # EC-A5013-H17-100: peak 90 Nm
+EFFORT_HIP_YAW = 60.0  # EC-A3814-H14-107: peak 60 Nm
+EFFORT_KNEE = 75.0  # EC-A4315-P2-36: peak 75 Nm
+EFFORT_ANKLE = 36.0  # EC-A4310-P2-36: peak 36 Nm
 
 ASIMOV_ACTUATOR_HIP_PITCH = BuiltinPositionActuatorCfg(
-    target_names_expr=[".*_hip_pitch_joint",],
-    stiffness=STIFFNESS_HIP_PITCH,
-    damping=DAMPING_HIP_PITCH,
-    effort_limit=EFFORT_HIP_PITCH,
-    armature=ARMATURE_HIP_PITCH,
+  target_names_expr=(".*_hip_pitch_joint",),
+  stiffness=STIFFNESS_HIP_PITCH,
+  damping=DAMPING_HIP_PITCH,
+  effort_limit=EFFORT_HIP_PITCH,
+  armature=ARMATURE_HIP_PITCH,
 )
 
 ASIMOV_ACTUATOR_HIP_ROLL = BuiltinPositionActuatorCfg(
-    target_names_expr=(".*_hip_roll_joint",),
-    stiffness=STIFFNESS_HIP_ROLL,
-    damping=DAMPING_HIP_ROLL,
-    effort_limit=EFFORT_HIP_ROLL,
-    armature=ARMATURE_HIP_ROLL,
+  target_names_expr=(".*_hip_roll_joint",),
+  stiffness=STIFFNESS_HIP_ROLL,
+  damping=DAMPING_HIP_ROLL,
+  effort_limit=EFFORT_HIP_ROLL,
+  armature=ARMATURE_HIP_ROLL,
 )
 
 ASIMOV_ACTUATOR_HIP_YAW = BuiltinPositionActuatorCfg(
-    target_names_expr=(".*_hip_yaw_joint",),
-    stiffness=STIFFNESS_HIP_YAW,
-    damping=DAMPING_HIP_YAW,
-    effort_limit=EFFORT_HIP_YAW,
-    armature=ARMATURE_HIP_YAW,
+  target_names_expr=(".*_hip_yaw_joint",),
+  stiffness=STIFFNESS_HIP_YAW,
+  damping=DAMPING_HIP_YAW,
+  effort_limit=EFFORT_HIP_YAW,
+  armature=ARMATURE_HIP_YAW,
 )
 
 ASIMOV_ACTUATOR_KNEE = BuiltinPositionActuatorCfg(
-    target_names_expr=(".*_knee_joint",),
-    stiffness=STIFFNESS_KNEE,
-    damping=DAMPING_KNEE,
-    effort_limit=EFFORT_KNEE,
-    armature=ARMATURE_KNEE,
+  target_names_expr=(".*_knee_joint",),
+  stiffness=STIFFNESS_KNEE,
+  damping=DAMPING_KNEE,
+  effort_limit=EFFORT_KNEE,
+  armature=ARMATURE_KNEE,
 )
 
 ASIMOV_ACTUATOR_ANKLE = BuiltinPositionActuatorCfg(
-    target_names_expr=(".*_ankle_pitch_joint", ".*_ankle_roll_joint"),
-    stiffness=STIFFNESS_ANKLE_PITCH,
-    damping=DAMPING_ANKLE,
-    effort_limit=EFFORT_ANKLE,
-    armature=ARMATURE_ANKLE_PITCH,
+  target_names_expr=(".*_ankle_pitch_joint", ".*_ankle_roll_joint"),
+  stiffness=STIFFNESS_ANKLE_PITCH,
+  damping=DAMPING_ANKLE,
+  effort_limit=EFFORT_ANKLE,
+  armature=ARMATURE_ANKLE_PITCH,
 )
 
 ##
@@ -133,9 +133,9 @@ ASIMOV_ACTUATOR_ANKLE = BuiltinPositionActuatorCfg(
 ##
 
 HOME_KEYFRAME = EntityCfg.InitialStateCfg(
-    pos=(0, 0, 0.75),  # Standing height (~0.72m + margin)
-    joint_pos={".*": 0.0},  # All joints at zero = straight standing
-    joint_vel={".*": 0.0},
+  pos=(0, 0, 0.75),  # Standing height (~0.72m + margin)
+  joint_pos={".*": 0.0},  # All joints at zero = straight standing
+  joint_vel={".*": 0.0},
 )
 
 # Knees bent pose for stability
@@ -150,19 +150,19 @@ HOME_KEYFRAME = EntityCfg.InitialStateCfg(
 # - Left: axis=(0, 1, 0) → negative = pitch down
 # - Right: axis=(0, -1, 0) → positive = pitch down
 KNEES_BENT_KEYFRAME = EntityCfg.InitialStateCfg(
-    pos=(0, 0, 0.70),  # Lower height for bent knees
-    joint_pos={
-        "left_hip_pitch_joint": 0.0,
-        "right_hip_pitch_joint": 0.0,
-        ".*_hip_roll_joint": 0.0,
-        ".*_hip_yaw_joint": 0.0,
-        "left_knee_joint": 0.4,    # [0, 1.5] range
-        "right_knee_joint": -0.4,  # [-1.5, 0] range
-        "left_ankle_pitch_joint": -0.2,   # Compensate for knee bend
-        "right_ankle_pitch_joint": 0.2,   # Opposite sign
-        ".*_ankle_roll_joint": 0.0,
-    },
-    joint_vel={".*": 0.0},
+  pos=(0, 0, 0.70),  # Lower height for bent knees
+  joint_pos={
+    "left_hip_pitch_joint": 0.0,
+    "right_hip_pitch_joint": 0.0,
+    ".*_hip_roll_joint": 0.0,
+    ".*_hip_yaw_joint": 0.0,
+    "left_knee_joint": 0.4,  # [0, 1.5] range
+    "right_knee_joint": -0.4,  # [-1.5, 0] range
+    "left_ankle_pitch_joint": -0.2,  # Compensate for knee bend
+    "right_ankle_pitch_joint": 0.2,  # Opposite sign
+    ".*_ankle_roll_joint": 0.0,
+  },
+  joint_vel={".*": 0.0},
 )
 
 ##
@@ -171,23 +171,23 @@ KNEES_BENT_KEYFRAME = EntityCfg.InitialStateCfg(
 
 # Full collision including self-collisions
 FULL_COLLISION = CollisionCfg(
-    geom_names_expr=(".*_collision",),
-    condim={
-        r"^(left|right)_ankle_roll_link_collision$": 3,
-        ".*_collision": 1,
-    },
-    priority={r"^(left|right)_ankle_roll_link_collision$": 1},
-    friction={r"^(left|right)_ankle_roll_link_collision$": (0.6,)},
+  geom_names_expr=(".*_collision",),
+  condim={
+    r"^(left|right)_ankle_roll_link_collision$": 3,
+    ".*_collision": 1,
+  },
+  priority={r"^(left|right)_ankle_roll_link_collision$": 1},
+  friction={r"^(left|right)_ankle_roll_link_collision$": (0.6,)},
 )
 
 # Feet only collision (disable self-collision)
 FEET_ONLY_COLLISION = CollisionCfg(
-    geom_names_expr=(r"^(left|right)_ankle_roll_link_collision$",),
-    contype=0,
-    conaffinity=1,
-    condim=3,
-    priority=1,
-    friction=(0.6,),
+  geom_names_expr=(r"^(left|right)_ankle_roll_link_collision$",),
+  contype=0,
+  conaffinity=1,
+  condim=3,
+  priority=1,
+  friction=(0.6,),
 )
 
 ##
@@ -195,50 +195,50 @@ FEET_ONLY_COLLISION = CollisionCfg(
 ##
 
 ASIMOV_ARTICULATION = EntityArticulationInfoCfg(
-    actuators=(
-        ASIMOV_ACTUATOR_HIP_PITCH,
-        ASIMOV_ACTUATOR_HIP_ROLL,
-        ASIMOV_ACTUATOR_HIP_YAW,
-        ASIMOV_ACTUATOR_KNEE,
-        ASIMOV_ACTUATOR_ANKLE,
-    ),
-    soft_joint_pos_limit_factor=0.9,
+  actuators=(
+    ASIMOV_ACTUATOR_HIP_PITCH,
+    ASIMOV_ACTUATOR_HIP_ROLL,
+    ASIMOV_ACTUATOR_HIP_YAW,
+    ASIMOV_ACTUATOR_KNEE,
+    ASIMOV_ACTUATOR_ANKLE,
+  ),
+  soft_joint_pos_limit_factor=0.9,
 )
 
 
 def get_asimov_robot_cfg() -> EntityCfg:
-    """Get a fresh Asimov robot configuration instance.
+  """Get a fresh Asimov robot configuration instance.
 
-    Returns a new EntityCfg instance each time to avoid mutation issues when
-    the config is shared across multiple places.
-    """
-    return EntityCfg(
-        init_state=HOME_KEYFRAME,
-        collisions=(FEET_ONLY_COLLISION,),
-        spec_fn=get_spec,
-        articulation=ASIMOV_ARTICULATION,
-    )
+  Returns a new EntityCfg instance each time to avoid mutation issues when
+  the config is shared across multiple places.
+  """
+  return EntityCfg(
+    init_state=HOME_KEYFRAME,
+    collisions=(FEET_ONLY_COLLISION,),
+    spec_fn=get_spec,
+    articulation=ASIMOV_ARTICULATION,
+  )
 
 
 # Action scale: how much the action scales joint position target
 # Using 0.3 * effort_limit / stiffness (like asimov-mjlab)
 ASIMOV_ACTION_SCALE: dict[str, float] = {}
 for a in ASIMOV_ARTICULATION.actuators:
-    assert isinstance(a, BuiltinPositionActuatorCfg)
-    e = a.effort_limit
-    s = a.stiffness
-    names = a.target_names_expr
-    assert e is not None
-    assert s is not None
-    for n in names:
-        ASIMOV_ACTION_SCALE[n] = 0.3 * e / s
+  assert isinstance(a, BuiltinPositionActuatorCfg)
+  e = a.effort_limit
+  s = a.stiffness
+  names = a.target_names_expr
+  assert e is not None
+  assert s is not None
+  for n in names:
+    ASIMOV_ACTION_SCALE[n] = 0.3 * e / s
 
 
 if __name__ == "__main__":
-    import mujoco.viewer as viewer
+  import mujoco.viewer as viewer
 
-    from mjlab.entity.entity import Entity
+  from mjlab.entity.entity import Entity
 
-    robot = Entity(get_asimov_robot_cfg())
+  robot = Entity(get_asimov_robot_cfg())
 
-    viewer.launch(robot.spec.compile())
+  viewer.launch(robot.spec.compile())
