@@ -108,7 +108,7 @@ def k1_rough_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
 
   twist_cmd = cfg.commands["twist"]
   assert isinstance(twist_cmd, UniformVelocityCommandCfg)
-  twist_cmd.viz.z_offset = 0.57  # Approx. trunk height above ground at HOME_KEYFRAME.
+  twist_cmd.viz.z_offset = 0.9  # Approx. trunk height above ground at HOME_KEYFRAME.
 
   # Conservative velocity ranges given K1's narrow ankle-roll ROM
   # (+-0.345 rad) and asymmetric hip-roll ROM, mirroring T1's caution.
