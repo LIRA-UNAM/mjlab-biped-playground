@@ -118,9 +118,6 @@ def booster_k1_getup_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
         "reward_name": "action_rate_l2",
         "stages": [
           {"step": 0, "weight": -0.01},
-          {"step": 600 * 24, "weight": -0.05},
-          {"step": 900 * 24, "weight": -0.08},
-          {"step": 1200 * 24, "weight": -0.1},
         ],
       },
     ),
@@ -130,9 +127,6 @@ def booster_k1_getup_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
         "reward_name": "joint_vel_l2",
         "stages": [
           {"step": 0, "weight": 0.0},
-          {"step": 900 * 24, "weight": -0.005},
-          {"step": 1200 * 24, "weight": -0.008},
-          {"step": 1500 * 24, "weight": -0.01},
         ],
       },
     ),
@@ -141,11 +135,7 @@ def booster_k1_getup_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
       params={
         "termination_name": "energy",
         "stages": [
-          {"step": 900 * 24, "params": {"threshold": 3000.0}},
-          {"step": 1200 * 24, "params": {"threshold": 2000.0}},
-          {"step": 1500 * 24, "params": {"threshold": 1500.0}},
-          {"step": 1700 * 24, "params": {"threshold": 1000.0}},
-          {"step": 2200 * 24, "params": {"threshold": 700.0}},
+          {"step": 2500 * 24, "params": {"threshold": 3000.0}},
         ],
       },
     ),
