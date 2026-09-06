@@ -4,6 +4,12 @@ from playground.asset_zoo.robots.asimov.asimov_constants import (
 from playground.asset_zoo.robots.asimov.asimov_constants import (
   get_asimov_robot_cfg as get_asimov_robot_cfg,
 )
+from playground.asset_zoo.robots.k1.k1_constants import (
+  K1_ACTION_SCALE as K1_ACTION_SCALE,
+)
+from playground.asset_zoo.robots.k1.k1_constants import (
+  get_k1_robot_cfg as get_k1_robot_cfg,
+)
 from playground.asset_zoo.robots.booster_t1.t1_constants import (
   T1_ACTION_SCALE as T1_ACTION_SCALE,
 )
