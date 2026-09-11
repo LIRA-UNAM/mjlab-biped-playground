@@ -77,8 +77,8 @@ def t1_flashsac_runner_cfg() -> RslRlFlashSacRunnerCfg:
       critic_target_update_tau=0.01,
     ),
     experiment_name="t1_velocity_flashsac",
-    wandb_project="mjlab_playground",
-    save_interval=-1,
-    num_steps_per_env=1,
-    max_iterations=20_000,
+    wandb_project="t1_velocity_flashsac",
+    save_interval=300,
+    num_steps_per_env=24,
+    max_iterations=3_000,
   )
