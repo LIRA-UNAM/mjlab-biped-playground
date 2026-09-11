@@ -6,6 +6,13 @@ from mjlab.rl import (
   RslRlPpoAlgorithmCfg,
 )
 
+from playground.rl.flashsac import (
+  RslRlFlashSacActorCfg,
+  RslRlFlashSacAlgorithmCfg,
+  RslRlFlashSacCriticCfg,
+  RslRlFlashSacRunnerCfg,
+)
+
 
 def t1_ppo_runner_cfg() -> RslRlOnPolicyRunnerCfg:
   """Create RL runner configuration for Booster T1 velocity task."""
@@ -46,4 +53,32 @@ def t1_ppo_runner_cfg() -> RslRlOnPolicyRunnerCfg:
     save_interval=300,
     num_steps_per_env=24,
     max_iterations=3_000,
+  )
+
+
+def t1_flashsac_runner_cfg() -> RslRlFlashSacRunnerCfg:
+  """Create FlashSAC (off-policy) RL runner configuration for Booster T1 velocity task."""
+  return RslRlFlashSacRunnerCfg(
+    actor=RslRlFlashSacActorCfg(
+      num_blocks=2,
+      hidden_dim=256,
+    ),
+    critic=RslRlFlashSacCriticCfg(
+      num_blocks=2,
+      hidden_dim=256,
+    ),
+    algorithm=RslRlFlashSacAlgorithmCfg(
+      replay_buffer_size=10_000_000,
+      buffer_min_length=100_000,
+      num_mini_batches=2,
+      mini_batch_size=2048,
+      n_steps=3,
+      gamma=0.99,
+      critic_target_update_tau=0.01,
+    ),
+    experiment_name="t1_velocity_flashsac",
+    wandb_project="mjlab_playground",
+    save_interval=-1,
+    num_steps_per_env=1,
+    max_iterations=20_000,
   )
