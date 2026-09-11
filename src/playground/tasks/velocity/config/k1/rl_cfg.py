@@ -75,6 +75,11 @@ def k1_flashsac_runner_cfg() -> RslRlFlashSacRunnerCfg:
       n_steps=3,
       gamma=0.99,
       critic_target_update_tau=0.01,
+      # See t1_flashsac_runner_cfg: interpreted in the tanh-normalized [-1, 1]
+      # action space (identity action_bias/action_scale), not radians. Doubled
+      # from the 0.15 default to sustain exploration past the point where it
+      # was collapsing entropy too early on T1's equivalent config.
+      temp_target_sigma=0.3,
     ),
     experiment_name="k1_velocity_flashsac",
     wandb_project="k1_velocity_flashsac",

@@ -75,6 +75,13 @@ def t1_flashsac_runner_cfg() -> RslRlFlashSacRunnerCfg:
       n_steps=3,
       gamma=0.99,
       critic_target_update_tau=0.01,
+      # Interpreted in the tanh-normalized [-1, 1] action space (we use identity
+      # action_bias/action_scale), not true radians, since the actor's affine
+      # scaling buffers are left at identity. The default 0.15 (only 15% of the
+      # bounded range) let entropy collapse by ~step 15k, capping exploration to
+      # small in-place oscillations that satisfy yaw tracking but not full
+      # forward/lateral strides. Doubled to sustain exploration longer.
+      temp_target_sigma=0.3,
     ),
     experiment_name="t1_velocity_flashsac",
     wandb_project="t1_velocity_flashsac",
