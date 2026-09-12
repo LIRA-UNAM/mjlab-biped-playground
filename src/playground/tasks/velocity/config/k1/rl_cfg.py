@@ -70,16 +70,20 @@ def k1_flashsac_runner_cfg() -> RslRlFlashSacRunnerCfg:
     algorithm=RslRlFlashSacAlgorithmCfg(
       replay_buffer_size=10_000_000,
       buffer_min_length=100_000,
-      num_mini_batches=2,
+      # FlashSAC paper (arXiv:2604.04539) uses 1024 envs at UTD=2/1024. We run
+      # 4096 envs, so num_mini_batches is scaled 4x (2->8) to match that
+      # validated updates-per-collected-transition ratio instead of diluting
+      # it to 2/4096.
+      num_mini_batches=8,
       mini_batch_size=2048,
       n_steps=3,
       gamma=0.99,
       critic_target_update_tau=0.01,
       # See t1_flashsac_runner_cfg: interpreted in the tanh-normalized [-1, 1]
-      # action space (identity action_bias/action_scale), not radians. Doubled
-      # from the 0.15 default to sustain exploration past the point where it
-      # was collapsing entropy too early on T1's equivalent config.
-      temp_target_sigma=0.3,
+      # action space (identity action_bias/action_scale), not radians. Raised
+      # further from the 0.15 default to sustain exploration past the point
+      # where it was collapsing entropy too early on T1's equivalent config.
+      temp_target_sigma=0.5,
     ),
     experiment_name="k1_velocity_flashsac",
     wandb_project="k1_velocity_flashsac",

@@ -70,18 +70,24 @@ def t1_flashsac_runner_cfg() -> RslRlFlashSacRunnerCfg:
     algorithm=RslRlFlashSacAlgorithmCfg(
       replay_buffer_size=10_000_000,
       buffer_min_length=100_000,
-      num_mini_batches=2,
+      # FlashSAC paper (arXiv:2604.04539) uses 1024 envs at UTD=2/1024. We run
+      # 4096 envs, so num_mini_batches is scaled 4x (2->8) to match that
+      # validated updates-per-collected-transition ratio instead of diluting
+      # it to 2/4096.
+      num_mini_batches=8,
       mini_batch_size=2048,
       n_steps=3,
       gamma=0.99,
       critic_target_update_tau=0.01,
       # Interpreted in the tanh-normalized [-1, 1] action space (we use identity
       # action_bias/action_scale), not true radians, since the actor's affine
-      # scaling buffers are left at identity. The default 0.15 (only 15% of the
-      # bounded range) let entropy collapse by ~step 15k, capping exploration to
-      # small in-place oscillations that satisfy yaw tracking but not full
-      # forward/lateral strides. Doubled to sustain exploration longer.
-      temp_target_sigma=0.3,
+      # scaling buffers are left at identity. The paper's own 0.15 default
+      # (insensitive across 0.05-0.25 in their setup) assumes radians via a
+      # real action_bias/action_scale; in our normalized space that same value
+      # let entropy collapse by ~step 15k, capping exploration to small
+      # in-place oscillations that satisfy yaw tracking but not full
+      # forward/lateral strides. Raised further to sustain exploration longer.
+      temp_target_sigma=0.5,
     ),
     experiment_name="t1_velocity_flashsac",
     wandb_project="t1_velocity_flashsac",
