@@ -3,7 +3,7 @@ from mjlab.tasks.velocity.rl import VelocityOnPolicyRunner
 
 from playground.rl.flashsac import VelocityOffPolicyRunner
 
-from .env_cfgs import k1_flat_env_cfg, k1_rough_env_cfg
+from .env_cfgs import k1_flat_env_cfg, k1_rough_env_cfg, k1_flat_env_cfg_flashsac, k1_rough_env_cfg_flashsac
 from .rl_cfg import k1_flashsac_runner_cfg, k1_ppo_runner_cfg
 
 register_mjlab_task(
