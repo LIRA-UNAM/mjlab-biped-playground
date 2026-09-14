@@ -156,8 +156,8 @@ def t1_rough_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
 
   cfg.rewards["body_ang_vel"].weight = -0.06
   cfg.rewards["angular_momentum"].weight = -0.02
-  cfg.rewards["air_time"].weight = 0.3
-
+  cfg.rewards["air_time"].weight = 0.2
+  cfg.rewards["track_linear_velocity"].weight = 4.0
   # T1 defaults to FULL_COLLISION (self-collision enabled everywhere, unlike
   # Asimov's feet-only default). HOME_KEYFRAME arm angles are tuned to keep
   # arms clear of the torso/legs, but penalize any incidental self-contact
