@@ -7,7 +7,7 @@ from .env_cfgs import t1_flat_env_cfg, t1_rough_env_cfg, t1_flat_env_cfg_flashsa
 from .rl_cfg import t1_flashsac_runner_cfg, t1_ppo_runner_cfg
 
 register_mjlab_task(
-  task_id="Mjlab-Velocity-Rough-Booster-T1",
+  task_id="Mjlab-Velocity-Rough-Booster-T1-PPO",
   env_cfg=t1_rough_env_cfg(),
   play_env_cfg=t1_rough_env_cfg(play=True),
   rl_cfg=t1_ppo_runner_cfg(),
@@ -15,7 +15,7 @@ register_mjlab_task(
 )
 
 register_mjlab_task(
-  task_id="Mjlab-Velocity-Flat-Booster-T1",
+  task_id="Mjlab-Velocity-Flat-Booster-T1-PPO",
   env_cfg=t1_flat_env_cfg(),
   play_env_cfg=t1_flat_env_cfg(play=True),
   rl_cfg=t1_ppo_runner_cfg(),

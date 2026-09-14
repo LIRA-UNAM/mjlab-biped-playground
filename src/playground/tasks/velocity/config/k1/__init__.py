@@ -7,7 +7,7 @@ from .env_cfgs import k1_flat_env_cfg, k1_rough_env_cfg
 from .rl_cfg import k1_flashsac_runner_cfg, k1_ppo_runner_cfg
 
 register_mjlab_task(
-  task_id="Mjlab-Velocity-Rough-Booster-K1",
+  task_id="Mjlab-Velocity-Rough-Booster-K1-PPO",
   env_cfg=k1_rough_env_cfg(),
   play_env_cfg=k1_rough_env_cfg(play=True),
   rl_cfg=k1_ppo_runner_cfg(),
@@ -15,7 +15,7 @@ register_mjlab_task(
 )
 
 register_mjlab_task(
-  task_id="Mjlab-Velocity-Flat-Booster-K1",
+  task_id="Mjlab-Velocity-Flat-Booster-K1-PPO",
   env_cfg=k1_flat_env_cfg(),
   play_env_cfg=k1_flat_env_cfg(play=True),
   rl_cfg=k1_ppo_runner_cfg(),
@@ -24,16 +24,16 @@ register_mjlab_task(
 
 register_mjlab_task(
   task_id="Mjlab-Velocity-Rough-Booster-K1-FlashSAC",
-  env_cfg=k1_rough_env_cfg(),
-  play_env_cfg=k1_rough_env_cfg(play=True),
+  env_cfg=k1_rough_env_cfg_flashsac(),
+  play_env_cfg=k1_rough_env_cfg_flashsac(play=True),
   rl_cfg=k1_flashsac_runner_cfg(),
   runner_cls=VelocityOffPolicyRunner,
 )
 
 register_mjlab_task(
   task_id="Mjlab-Velocity-Flat-Booster-K1-FlashSAC",
-  env_cfg=k1_flat_env_cfg(),
-  play_env_cfg=k1_flat_env_cfg(play=True),
+  env_cfg=k1_flat_env_cfg_flashsac(),
+  play_env_cfg=k1_flat_env_cfg_flashsac(play=True),
   rl_cfg=k1_flashsac_runner_cfg(),
   runner_cls=VelocityOffPolicyRunner,
 )
