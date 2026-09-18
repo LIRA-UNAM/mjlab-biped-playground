@@ -156,8 +156,8 @@ def t1_rough_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
 
   cfg.rewards["body_ang_vel"].weight = -0.06
   cfg.rewards["angular_momentum"].weight = -0.02
-  cfg.rewards["air_time"].weight = 0.3
-
+  cfg.rewards["air_time"].weight = 0.2
+  cfg.rewards["track_linear_velocity"].weight = 2.0
   # T1 defaults to FULL_COLLISION (self-collision enabled everywhere, unlike
   # Asimov's feet-only default). HOME_KEYFRAME arm angles are tuned to keep
   # arms clear of the torso/legs, but penalize any incidental self-contact
@@ -168,7 +168,6 @@ def t1_rough_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
     weight=-1.0,
     params={"sensor_name": self_collision_cfg.name, "force_threshold": 10.0},
   )
-
   # Apply play mode overrides.
   if play:
     # Effectively infinite episode length.
@@ -221,4 +220,18 @@ def t1_flat_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
     twist_cmd.ranges.lin_vel_x = (-1.0, 1.2)
     twist_cmd.ranges.ang_vel_z = (-0.7, 0.7)
 
+  return cfg
+
+def t1_flat_env_cfg_flashsac(play: bool = False) -> ManagerBasedRlEnvCfg:
+  """Create Booster T1 flat terrain velocity tracking configuration for FlashSAC."""
+  cfg = t1_flat_env_cfg(play=play)
+
+  cfg.actions["joint_pos"].scale = 1.0
+  return cfg
+
+def t1_rough_env_cfg_flashsac(play: bool = False) -> ManagerBasedRlEnvCfg:
+  """Create Booster T1 rough terrain velocity tracking configuration for FlashSAC."""
+  cfg = t1_rough_env_cfg(play=play)
+
+  cfg.actions["joint_pos"].scale = 1.0
   return cfg

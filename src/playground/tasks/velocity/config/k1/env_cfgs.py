@@ -220,3 +220,17 @@ def k1_flat_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
     twist_cmd.ranges.ang_vel_z = (-0.7, 0.7)
 
   return cfg
+
+def k1_flat_env_cfg_flashsac(play: bool = False) -> ManagerBasedRlEnvCfg:
+  """Create Booster K1 flat terrain velocity tracking configuration for FlashSAC."""
+  cfg = k1_flat_env_cfg(play=play)
+
+  cfg.actions["joint_pos"].scale = 1.0
+  return cfg
+
+def k1_rough_env_cfg_flashsac(play: bool = False) -> ManagerBasedRlEnvCfg:
+  """Create Booster K1 rough terrain velocity tracking configuration for FlashSAC."""
+  cfg = k1_rough_env_cfg(play=play)
+
+  cfg.actions["joint_pos"].scale = 1.0
+  return cfg
