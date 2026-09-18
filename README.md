@@ -155,6 +155,62 @@ uv run play Mjlab-Velocity-Flat-Asimov --wandb-run-path /path/to/my/wandb
 uv run play Mjlab-Velocity-Rough-Asimov --wandb-run-path /path/to/my/wandb
 ```
 
+### Export Policy to ONNX
+
+`export_policy.py` (repo root) exports a trained checkpoint for **any registered task** — PPO or FlashSAC — to a standalone ONNX file, so the policy can run outside mjlab/PyTorch (e.g. on real hardware, in a different simulator, or from a lightweight `onnxruntime`-only deployment). It follows the same two-stage CLI as `train`/`play`: task ID first, then options.
+
+You must provide **exactly one** checkpoint source: `--checkpoint-file` (a local `.pt` path) or `--wandb-run-path` (downloads/caches the checkpoint from W&B, optionally pinned to a specific checkpoint with `--wandb-checkpoint-name`).
+
+```bash
+# From a local checkpoint file
+uv run python export_policy.py Mjlab-Velocity-Flat-Booster-T1-PPO \
+  --checkpoint-file logs/rsl_rl/t1_velocity/wandb_checkpoints/<run_id>/model_2999.pt
+
+# From a W&B run (downloads the latest checkpoint by default)
+uv run python export_policy.py Mjlab-Velocity-Flat-Booster-T1-FlashSAC \
+  --wandb-run-path <entity>/<project>/<run_id>
+# or pin a specific checkpoint:
+uv run python export_policy.py Mjlab-Velocity-Flat-Booster-T1-FlashSAC \
+  --wandb-run-path <entity>/<project>/<run_id> --wandb-checkpoint-name model_40000.pt
+
+# Custom output location (defaults: --export-dir export, --filename <slugified-task-id>.onnx)
+uv run python export_policy.py Mjlab-Velocity-Flat-Asimov \
+  --wandb-run-path <entity>/<project>/<run_id> \
+  --export-dir export --filename asimov_flat_policy.onnx
+```
+
+Run `uv run python export_policy.py --help` for the task list, or `uv run python export_policy.py <TASK> --help` for the full option list (`--export-dir`, `--filename`, `--device`, `--log-root`, etc.).
+
+**What's in the ONNX file:** besides the policy graph itself, the export attaches everything needed to reconstruct the task's observation/action interface as ONNX metadata (`metadata_props`):
+- `joint_names`, `joint_stiffness`, `joint_damping`, `default_joint_pos`, `action_scale` — PD gains and default pose needed to turn actions into joint position targets.
+- `observation_names`, `observation_terms_scale`, `observation_terms_clip`, `observation_terms_flatten_history_dim`, `observation_terms_history_length`, `command_names` — how the flat observation vector fed into the policy is assembled.
+- `run_path` — provenance (the local checkpoint path or W&B run used).
+
+**Deploying/running it outside this repo:** the exported `.onnx` file has no dependency on mjlab, PyTorch, or this repo — inference only needs `onnxruntime` (and `onnx` to read the metadata above):
+
+```python
+import onnx
+import onnxruntime as ort
+
+model = onnx.load("export/policy.onnx")
+metadata = {p.key: p.value for p in model.metadata_props}  # joint_names, action_scale, etc.
+
+session = ort.InferenceSession("export/policy.onnx")
+input_name = session.get_inputs()[0].name
+# obs: float32 array of shape (1, obs_dim), built per `observation_names`/`observation_terms_scale`/clip
+action = session.run(None, {input_name: obs})[0]
+# target_joint_pos = default_joint_pos + action * action_scale
+```
+
+`deploy.py` (repo root) is a full worked example of this — it loads an exported ONNX policy, builds observations, and runs a closed-loop sim2sim rollout in MuJoCo with video/plot output:
+
+```bash
+uv run python deploy.py --policy export/asimov_flat_policy.onnx --cmd_vx 0.5
+```
+
+> [!NOTE]
+> `deploy.py` is currently Asimov-specific (its MuJoCo XML, joint order, and 47-dim gait-clock observation layout are hardcoded for Asimov) — use it as a reference for wiring up a robot-specific deployment rather than as a robot-agnostic tool.
+
 ---
 
 ## License
