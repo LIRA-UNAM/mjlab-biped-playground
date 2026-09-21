@@ -12,7 +12,7 @@ from .env_cfgs import (
 from .rl_cfg import k1_flashsac_runner_cfg, k1_ppo_runner_cfg
 
 register_mjlab_task(
-  task_id="Mjlab-Velocity-Rough-Booster-K1-PPO",
+  task_id="Pumas-Velocity-Rough-Booster-K1-PPO",
   env_cfg=k1_rough_env_cfg(),
   play_env_cfg=k1_rough_env_cfg(play=True),
   rl_cfg=k1_ppo_runner_cfg(),
@@ -20,7 +20,7 @@ register_mjlab_task(
 )
 
 register_mjlab_task(
-  task_id="Mjlab-Velocity-Flat-Booster-K1-PPO",
+  task_id="Pumas-Velocity-Flat-Booster-K1-PPO",
   env_cfg=k1_flat_env_cfg(),
   play_env_cfg=k1_flat_env_cfg(play=True),
   rl_cfg=k1_ppo_runner_cfg(),
@@ -28,7 +28,7 @@ register_mjlab_task(
 )
 
 register_mjlab_task(
-  task_id="Mjlab-Velocity-Rough-Booster-K1-FlashSAC",
+  task_id="Pumas-Velocity-Rough-Booster-K1-FlashSAC",
   env_cfg=k1_rough_env_cfg_flashsac(),
   play_env_cfg=k1_rough_env_cfg_flashsac(play=True),
   rl_cfg=k1_flashsac_runner_cfg(),
@@ -36,7 +36,7 @@ register_mjlab_task(
 )
 
 register_mjlab_task(
-  task_id="Mjlab-Velocity-Flat-Booster-K1-FlashSAC",
+  task_id="Pumas-Velocity-Flat-Booster-K1-FlashSAC",
   env_cfg=k1_flat_env_cfg_flashsac(),
   play_env_cfg=k1_flat_env_cfg_flashsac(play=True),
   rl_cfg=k1_flashsac_runner_cfg(),
@@ -46,7 +46,7 @@ register_mjlab_task(
 # Opt-in variants. DA = left/right mirror data augmentation.
 for _terrain, _env_cfg in (("Rough", k1_rough_env_cfg), ("Flat", k1_flat_env_cfg)):
   register_mjlab_task(
-    task_id=f"Mjlab-Velocity-{_terrain}-Booster-K1-PPO-DA",
+    task_id=f"Pumas-Velocity-{_terrain}-Booster-K1-PPO-DA",
     env_cfg=_env_cfg(),
     play_env_cfg=_env_cfg(play=True),
     rl_cfg=k1_ppo_runner_cfg(symmetry=True),
@@ -58,7 +58,7 @@ for _terrain, _env_cfg in (
   ("Flat", k1_flat_env_cfg_flashsac),
 ):
   register_mjlab_task(
-    task_id=f"Mjlab-Velocity-{_terrain}-Booster-K1-FlashSAC-DA",
+    task_id=f"Pumas-Velocity-{_terrain}-Booster-K1-FlashSAC-DA",
     env_cfg=_env_cfg(),
     play_env_cfg=_env_cfg(play=True),
     rl_cfg=k1_flashsac_runner_cfg(symmetry=True),

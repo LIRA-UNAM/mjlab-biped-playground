@@ -1,17 +1,14 @@
 """Booster K1 velocity tracking environment configurations.
 
-The whole environment is built here, one section per manager, so every
-observation, action, command, event, reward, termination and curriculum term
-of the K1 velocity tasks is visible in this file. Only the term functions
-(``mdp.*``) come from mjlab.
+``make_velocity_env_cfg`` below is a verbatim copy of mjlab's factory of the same
+name (``mjlab/tasks/velocity/velocity_env_cfg.py``, mjlab v1.6.0), kept in this
+file so the whole base configuration (sensors, observations, actions, commands,
+events, rewards, terminations, curriculum) can be read next to the K1 changes.
+Do not edit it: ``tests/test_k1_velocity_env_cfg.py`` checks it against mjlab's.
+Only the term functions (``mdp.*``) still live in mjlab.
 
-``_make_k1_velocity_env_cfg`` assembles the sections. The variants differ as follows:
-
-* rough: terrain generator, ``terrain_scan`` sensor, ``height_scan`` observation,
-  terrain-level curriculum and ``out_of_terrain_bounds`` termination.
-  Flat has none of these (plane terrain).
-* play: infinite episodes, no observation noise, no pushes, no illegal-contact
-  termination, no curriculum, fixed 5x5 terrain grid.
+The ``k1_*_env_cfg`` functions after it customize that base configuration for
+the Booster K1.
 """
 
 import math
@@ -29,6 +26,7 @@ from playground.tasks.velocity.mdp.terrain import randomize_terrain_contact
 
 from mjlab.envs import ManagerBasedRlEnvCfg
 from mjlab.envs import mdp as envs_mdp
+from mjlab.envs.mdp import dr
 from mjlab.envs.mdp.actions import JointPositionActionCfg
 from mjlab.managers.action_manager import ActionTermCfg
 from mjlab.managers.command_manager import CommandTermCfg
@@ -56,10 +54,6 @@ from mjlab.terrains import TerrainEntityCfg
 from mjlab.terrains.config import ROUGH_TERRAINS_CFG
 from mjlab.utils.noise import UniformNoiseCfg as Unoise
 from mjlab.viewer import ViewerConfig
-
-##
-# K1 constants
-##
 
 # Leg actuator patterns. The ankle is driven by the two crank joints of the
 # parallel linkage (the ankle pitch/roll joints are passive).
@@ -105,38 +99,33 @@ _POSE_JOINT_PATTERNS = (
   *_ARM_ACTUATOR_PATTERNS,
 )
 
-_FOOT_SITE_NAMES = ("left_foot", "right_foot")
-_FOOT_GEOM_NAMES = ("left_foot_collision", "right_foot_collision")
-_FOOT_BODY_NAMES = ("left_foot_link", "right_foot_link")
-
-# Max ray length of the `terrain_scan` sensor; the `height_scan` observation is
-# scaled by its inverse.
-_TERRAIN_SCAN_MAX_DISTANCE = 5.0
-
 
 ##
-# Sensors
+# Base velocity configuration: verbatim copy of mjlab's make_velocity_env_cfg.
 ##
 
 
-def _sensors(*, rough: bool) -> tuple:
-  # Height map under the trunk (rough terrain only; feeds `height_scan`).
+def make_velocity_env_cfg() -> ManagerBasedRlEnvCfg:
+  """Create base velocity tracking task configuration."""
+
+  ##
+  # Sensors
+  ##
+
   terrain_scan = RayCastSensorCfg(
     name="terrain_scan",
-    frame=ObjRef(type="body", name="Trunk", entity="robot"),
+    frame=ObjRef(type="body", name="", entity="robot"),  # Set per-robot.
     ray_alignment="yaw",
     pattern=GridPatternCfg(size=(1.6, 1.0), resolution=0.1),
-    max_distance=_TERRAIN_SCAN_MAX_DISTANCE,
+    max_distance=5.0,
     exclude_parent_body=True,
     include_geom_groups=(0,),  # Terrain only.
     debug_vis=True,
   )
 
-  # Height of each foot above the terrain (foot clearance / swing rewards).
   foot_height_scan = TerrainHeightSensorCfg(
     name="foot_height_scan",
-    frame=tuple(ObjRef(type="site", name=s, entity="robot") for s in _FOOT_SITE_NAMES),
-    pattern=RingPatternCfg.single_ring(radius=0.03, num_samples=6),
+    frame=(),  # Set per-robot: frame and pattern.
     ray_alignment="yaw",
     max_distance=1.0,
     exclude_parent_body=True,
@@ -149,65 +138,9 @@ def _sensors(*, rough: bool) -> tuple:
     ),
   )
 
-  # Foot <-> terrain contact: air time, contact flags and forces.
-  feet_ground_contact = ContactSensorCfg(
-    name="feet_ground_contact",
-    primary=ContactMatch(
-      mode="subtree",
-      pattern=r"^(left_foot_link|right_foot_link)$",
-      entity="robot",
-    ),
-    secondary=ContactMatch(mode="body", pattern="terrain"),
-    fields=("found", "force"),
-    reduce="netforce",
-    num_slots=1,
-    track_air_time=True,
-  )
-
-  # Any non-foot body touching the terrain is an illegal contact (fall).
-  non_foot_ground_contact = ContactSensorCfg(
-    name="non_foot_ground_contact",
-    primary=ContactMatch(
-      mode="body",
-      entity="robot",
-      pattern=r".*",
-      exclude=_FOOT_BODY_NAMES,
-    ),
-    secondary=ContactMatch(mode="body", pattern="terrain"),
-    fields=("found", "force"),
-    reduce="netforce",
-    num_slots=1,
-  )
-
-  # Robot touching itself (arm/torso/leg); penalized by `self_collisions`.
-  self_collision = ContactSensorCfg(
-    name="self_collision",
-    primary=ContactMatch(mode="subtree", pattern="Trunk", entity="robot"),
-    secondary=ContactMatch(mode="subtree", pattern="Trunk", entity="robot"),
-    fields=("found", "force"),
-    reduce="none",
-    num_slots=1,
-    history_length=4,
-  )
-
-  return (
-    *((terrain_scan,) if rough else ()),
-    foot_height_scan,
-    feet_ground_contact,
-    non_foot_ground_contact,
-    self_collision,
-  )
-
-
-##
-# Observations
-##
-
-
-def _observations(*, rough: bool, play: bool) -> dict[str, ObservationGroupCfg]:
-  # The passive ankle/rod joints of the parallel linkage never reach the
-  # policy: joint observations and encoder bias cover the 20 action joints.
-  obs_joints = SceneEntityCfg("robot", joint_names=OBS_JOINT_NAMES, preserve_order=True)
+  ##
+  # Observations
+  ##
 
   actor_terms = {
     "base_lin_vel": ObservationTermCfg(
@@ -226,12 +159,11 @@ def _observations(*, rough: bool, play: bool) -> dict[str, ObservationGroupCfg]:
     ),
     "joint_pos": ObservationTermCfg(
       func=mdp.joint_pos_rel,
-      params={"biased": True, "asset_cfg": obs_joints},
+      params={"biased": True},
       noise=Unoise(n_min=-0.01, n_max=0.01),
     ),
     "joint_vel": ObservationTermCfg(
       func=mdp.joint_vel_rel,
-      params={"asset_cfg": obs_joints},
       noise=Unoise(n_min=-1.5, n_max=1.5),
     ),
     "actions": ObservationTermCfg(func=mdp.last_action),
@@ -239,30 +171,23 @@ def _observations(*, rough: bool, play: bool) -> dict[str, ObservationGroupCfg]:
       func=mdp.generated_commands,
       params={"command_name": "twist"},
     ),
-  }
-  if rough:
-    actor_terms["height_scan"] = ObservationTermCfg(
+    "height_scan": ObservationTermCfg(
       func=envs_mdp.height_scan,
       params={"sensor_name": "terrain_scan"},
       noise=Unoise(n_min=-0.1, n_max=0.1),
-      scale=1 / _TERRAIN_SCAN_MAX_DISTANCE,
-    )
-
-  # The critic reuses the actor terms (its group has corruption disabled), sees
-  # the true (unbiased) joint positions, and adds privileged foot terms.
-  critic_terms = {
-    **actor_terms,
-    "joint_pos": ObservationTermCfg(
-      func=mdp.joint_pos_rel, params={"asset_cfg": obs_joints}
+      scale=1 / terrain_scan.max_distance,
     ),
   }
-  if rough:
-    critic_terms["height_scan"] = ObservationTermCfg(
+
+  critic_terms = {
+    **actor_terms,
+    # Critic sees the true (unbiased) joint positions as privileged information.
+    "joint_pos": ObservationTermCfg(func=mdp.joint_pos_rel),
+    "height_scan": ObservationTermCfg(
       func=envs_mdp.height_scan,
       params={"sensor_name": "terrain_scan"},
-      scale=1 / _TERRAIN_SCAN_MAX_DISTANCE,
-    )
-  critic_terms |= {
+      scale=1 / terrain_scan.max_distance,
+    ),
     "foot_height": ObservationTermCfg(
       func=mdp.foot_height,
       params={"sensor_name": "foot_height_scan"},
@@ -281,11 +206,11 @@ def _observations(*, rough: bool, play: bool) -> dict[str, ObservationGroupCfg]:
     ),
   }
 
-  return {
+  observations = {
     "actor": ObservationGroupCfg(
       terms=actor_terms,
       concatenate_terms=True,
-      enable_corruption=not play,
+      enable_corruption=True,
     ),
     "critic": ObservationGroupCfg(
       terms=critic_terms,
@@ -294,40 +219,34 @@ def _observations(*, rough: bool, play: bool) -> dict[str, ObservationGroupCfg]:
     ),
   }
 
+  ##
+  # Metrics
+  ##
 
-##
-# Actions
-##
+  metrics = {
+    "mean_action_acc": MetricsTermCfg(
+      func=mdp.mean_action_acc,
+    ),
+  }
 
+  ##
+  # Actions
+  ##
 
-def _actions(*, action_scale: float | dict[str, float]) -> dict[str, ActionTermCfg]:
-  # Legs + arms; the head actuators keep driving their own PD control toward
-  # the HOME_KEYFRAME default.
-  return {
+  actions: dict[str, ActionTermCfg] = {
     "joint_pos": JointPositionActionCfg(
       entity_name="robot",
-      actuator_names=_ACTION_JOINT_PATTERNS,
-      scale=action_scale,
+      actuator_names=(".*",),
+      scale=0.5,  # Override per-robot.
       use_default_offset=True,
     )
   }
 
+  ##
+  # Commands
+  ##
 
-##
-# Commands
-##
-
-
-def _commands(*, rough: bool, play: bool) -> dict[str, CommandTermCfg]:
-  # Conservative velocity ranges given K1's narrow ankle-roll ROM
-  # (+-0.345 rad) and asymmetric hip-roll ROM, mirroring T1's caution.
-  # NOTE: the `command_vel` curriculum below overwrites lin_vel_x / ang_vel_z
-  # with its own stage ranges from the first step on.
-  lin_vel_x, ang_vel_z = (-0.8, 0.8), (-0.6, 0.6)
-  if play and not rough:
-    lin_vel_x, ang_vel_z = (-1.0, 1.2), (-0.7, 0.7)
-
-  return {
+  commands: dict[str, CommandTermCfg] = {
     "twist": UniformVelocityCommandCfg(
       entity_name="robot",
       resampling_time_range=(3.0, 8.0),
@@ -337,25 +256,19 @@ def _commands(*, rough: bool, play: bool) -> dict[str, CommandTermCfg]:
       heading_command=True,
       heading_control_stiffness=0.5,
       debug_vis=True,
-      viz=UniformVelocityCommandCfg.VizCfg(
-        z_offset=0.9  # Approx. trunk height above ground at HOME_KEYFRAME.
-      ),
       ranges=UniformVelocityCommandCfg.Ranges(
-        lin_vel_x=lin_vel_x,
-        lin_vel_y=(-0.5, 0.5),
-        ang_vel_z=ang_vel_z,
+        lin_vel_x=(-1.0, 1.0),
+        lin_vel_y=(-1.0, 1.0),
+        ang_vel_z=(-0.5, 0.5),
         heading=(-math.pi, math.pi),
       ),
     )
   }
 
+  ##
+  # Events
+  ##
 
-##
-# Events
-##
-
-
-def _events(*, play: bool) -> dict[str, EventTermCfg]:
   events = {
     "reset_base": EventTermCfg(
       func=mdp.reset_root_state_uniform,
@@ -370,15 +283,13 @@ def _events(*, play: bool) -> dict[str, EventTermCfg]:
         "velocity_range": {},
       },
     ),
-    # Randomizing the closed loop would start the ankles with a violated
-    # constraint, so resets only perturb joints outside it.
     "reset_robot_joints": EventTermCfg(
       func=mdp.reset_joints_by_offset,
       mode="reset",
       params={
-        "position_range": (-0.1, 0.1),
-        "velocity_range": (-0.1, 0.1),
-        "asset_cfg": SceneEntityCfg("robot", joint_names=K1_PARALLEL_FREE_RESET_JOINTS),
+        "position_range": (0.0, 0.0),
+        "velocity_range": (0.0, 0.0),
+        "asset_cfg": SceneEntityCfg("robot", joint_names=(".*",)),
       },
     ),
     "push_robot": EventTermCfg(
@@ -398,9 +309,9 @@ def _events(*, play: bool) -> dict[str, EventTermCfg]:
     ),
     "foot_friction": EventTermCfg(
       mode="startup",
-      func=envs_mdp.dr.geom_friction,
+      func=dr.geom_friction,
       params={
-        "asset_cfg": SceneEntityCfg("robot", geom_names=_FOOT_GEOM_NAMES),
+        "asset_cfg": SceneEntityCfg("robot", geom_names=()),  # Set per-robot.
         "operation": "abs",
         "ranges": (0.3, 1.2),
         "shared_random": True,  # All foot geoms share the same friction.
@@ -408,19 +319,17 @@ def _events(*, play: bool) -> dict[str, EventTermCfg]:
     ),
     "encoder_bias": EventTermCfg(
       mode="startup",
-      func=envs_mdp.dr.encoder_bias,
+      func=dr.encoder_bias,
       params={
-        "asset_cfg": SceneEntityCfg(
-          "robot", joint_names=OBS_JOINT_NAMES, preserve_order=True
-        ),
+        "asset_cfg": SceneEntityCfg("robot"),
         "bias_range": (-0.015, 0.015),
       },
     ),
     "base_com": EventTermCfg(
       mode="startup",
-      func=envs_mdp.dr.body_com_offset,
+      func=dr.body_com_offset,
       params={
-        "asset_cfg": SceneEntityCfg("robot", body_names=("Trunk",)),
+        "asset_cfg": SceneEntityCfg("robot", body_names=()),  # Set per-robot.
         "operation": "add",
         "ranges": {
           0: (-0.025, 0.025),
@@ -429,66 +338,13 @@ def _events(*, play: bool) -> dict[str, EventTermCfg]:
         },
       },
     ),
-    # Sim2real domain randomization ported from booster_mjlab: PD gains,
-    # physically consistent inertia (the trunk carries the payload, so it moves
-    # further than the limbs) and terrain contact compliance.
-    "pd_gains": EventTermCfg(
-      mode="startup",
-      func=envs_mdp.dr.pd_gains,
-      params={
-        "asset_cfg": SceneEntityCfg("robot", actuator_names=".*"),
-        "operation": "scale",
-        "kp_range": (0.8, 1.2),
-        "kd_range": (0.8, 1.2),
-      },
-    ),
-    "trunk_inertia": EventTermCfg(
-      mode="startup",
-      func=envs_mdp.dr.pseudo_inertia,
-      params={
-        "asset_cfg": SceneEntityCfg("robot", body_names=("Trunk",)),
-        "alpha_range": (-0.05, 0.05),
-        "t_range": (-0.05, 0.05),
-      },
-    ),
-    "limb_inertia": EventTermCfg(
-      mode="startup",
-      func=envs_mdp.dr.pseudo_inertia,
-      params={
-        "asset_cfg": SceneEntityCfg("robot", body_names=(r"(?!Trunk$).*",)),
-        "alpha_range": (-0.05, 0.05),
-        "t_range": (-0.025, 0.025),
-      },
-    ),
-    "terrain_contact": EventTermCfg(
-      mode="startup",
-      func=randomize_terrain_contact,
-      params={
-        "asset_cfg": SceneEntityCfg("terrain"),
-        "solref_ranges": {0: (0.006, 0.03), 1: (0.95, 1.05)},
-        "solimp_ranges": {0: (0.88, 0.92), 1: (0.94, 0.99), 2: (0.003, 0.01)},
-        "shared_random": True,
-      },
-    ),
   }
 
-  if play:
-    del events["push_robot"]
-    events["randomize_terrain"] = EventTermCfg(
-      func=envs_mdp.randomize_terrain,
-      mode="reset",
-      params={},
-    )
-  return events
+  ##
+  # Rewards
+  ##
 
-
-##
-# Rewards
-##
-
-
-def _rewards() -> dict[str, RewardTermCfg]:
-  return {
+  rewards = {
     "track_linear_velocity": RewardTermCfg(
       func=mdp.track_linear_velocity,
       weight=2.0,
@@ -504,62 +360,37 @@ def _rewards() -> dict[str, RewardTermCfg]:
       weight=1.0,
       params={
         "std": math.sqrt(0.2),
-        "asset_cfg": SceneEntityCfg("robot", body_names=("Trunk",)),
+        "asset_cfg": SceneEntityCfg("robot", body_names=()),  # Set per-robot.
       },
     ),
-    # Restricted to leg + arm joints. This is required, not just stylistic:
-    # variable_posture builds its std tensors positionally aligned to
-    # asset_cfg's resolved joint list, and every joint in that list must be
-    # covered by a std dict key or the reward crashes with a shape mismatch.
-    # The head (not actuated by the policy) and the passive linkage joints are
-    # excluded. Arm stds are tighter than the leg ones: arms may counter-swing a
-    # little but are pulled back to the home pose, away from the trunk.
     "pose": RewardTermCfg(
       func=mdp.variable_posture,
       weight=1.0,
       params={
-        "asset_cfg": SceneEntityCfg("robot", joint_names=_POSE_JOINT_PATTERNS),
+        "asset_cfg": SceneEntityCfg("robot", joint_names=(".*",)),
         "command_name": "twist",
-        "std_standing": {".*": 0.05},
-        "std_walking": {
-          r".*_Hip_Pitch": 0.3,
-          r".*_Hip_Roll": 0.15,
-          r".*_Hip_Yaw": 0.15,
-          r".*_Knee_Pitch": 0.4,
-          r".*_Ankle_Pitch": 0.15,
-          r".*_Ankle_Roll": 0.1,
-          r".*_Shoulder_.*": 0.08,
-          r".*_Elbow_.*": 0.08,
-        },
-        "std_running": {
-          r".*_Hip_Pitch": 0.5,
-          r".*_Hip_Roll": 0.2,
-          r".*_Hip_Yaw": 0.2,
-          r".*_Knee_Pitch": 0.6,
-          r".*_Ankle_Pitch": 0.2,
-          r".*_Ankle_Roll": 0.12,
-          r".*_Shoulder_.*": 0.1,
-          r".*_Elbow_.*": 0.1,
-        },
+        "std_standing": {},  # Set per-robot.
+        "std_walking": {},  # Set per-robot.
+        "std_running": {},  # Set per-robot.
         "walking_threshold": 0.05,
         "running_threshold": 1.5,
       },
     ),
     "body_ang_vel": RewardTermCfg(
       func=mdp.body_angular_velocity_penalty,
-      weight=-0.06,
-      params={"asset_cfg": SceneEntityCfg("robot", body_names=("Trunk",))},
+      weight=0.0,  # Override per-robot
+      params={"asset_cfg": SceneEntityCfg("robot", body_names=())},  # Set per-robot.
     ),
     "angular_momentum": RewardTermCfg(
       func=mdp.angular_momentum_penalty,
-      weight=-0.02,
+      weight=0.0,  # Override per-robot
       params={"sensor_name": "robot/root_angmom"},
     ),
     "dof_pos_limits": RewardTermCfg(func=mdp.joint_pos_limits, weight=-1.0),
     "action_rate_l2": RewardTermCfg(func=mdp.action_rate_l2, weight=-0.1),
     "air_time": RewardTermCfg(
       func=mdp.feet_air_time,
-      weight=0.3,
+      weight=0.0,  # Override per-robot.
       params={
         "sensor_name": "feet_ground_contact",
         "threshold_min": 0.05,
@@ -576,7 +407,7 @@ def _rewards() -> dict[str, RewardTermCfg]:
         "height_sensor_name": "foot_height_scan",
         "command_name": "twist",
         "command_threshold": 0.05,
-        "asset_cfg": SceneEntityCfg("robot", site_names=_FOOT_SITE_NAMES),
+        "asset_cfg": SceneEntityCfg("robot", site_names=()),  # Set per-robot.
       },
     ),
     "foot_swing_height": RewardTermCfg(
@@ -597,7 +428,7 @@ def _rewards() -> dict[str, RewardTermCfg]:
         "sensor_name": "feet_ground_contact",
         "command_name": "twist",
         "command_threshold": 0.05,
-        "asset_cfg": SceneEntityCfg("robot", site_names=_FOOT_SITE_NAMES),
+        "asset_cfg": SceneEntityCfg("robot", site_names=()),  # Set per-robot.
       },
     ),
     "soft_landing": RewardTermCfg(
@@ -609,137 +440,80 @@ def _rewards() -> dict[str, RewardTermCfg]:
         "command_threshold": 0.05,
       },
     ),
-    # K1 defaults to FULL_COLLISION (self-collision enabled everywhere).
-    # HOME_KEYFRAME arm angles are tuned to keep arms clear of the torso/legs,
-    # and the arms are part of the action space, so penalize any self-contact
-    # (arm/torso/leg) to discourage the policy from exploiting it for balance.
-    "self_collisions": RewardTermCfg(
-      func=mdp.self_collision_cost,
-      weight=-1.0,
-      params={"sensor_name": "self_collision", "force_threshold": 10.0},
-    ),
   }
 
+  ##
+  # Terminations
+  ##
 
-##
-# Terminations
-##
-
-
-def _terminations(*, rough: bool, play: bool) -> dict[str, TerminationTermCfg]:
   terminations = {
     "time_out": TerminationTermCfg(func=mdp.time_out, time_out=True),
-    # Stochastic fall termination (gentler recovery signal than a hard 70 deg
-    # cutoff).
     "fell_over": TerminationTermCfg(
-      func=stochastic_bad_orientation,
-      params={"limit_angle": math.radians(63.0), "probability": 0.02},
+      func=mdp.bad_orientation,
+      params={"limit_angle": math.radians(70.0)},
     ),
-  }
-  if rough and not play:
-    terminations["out_of_terrain_bounds"] = TerminationTermCfg(
+    "out_of_terrain_bounds": TerminationTermCfg(
       func=mdp.out_of_terrain_bounds,
       time_out=True,
-    )
-  if not play:
-    terminations["illegal_contact"] = TerminationTermCfg(
-      func=mdp.illegal_contact,
-      params={"sensor_name": "non_foot_ground_contact"},
-    )
-  return terminations
+    ),
+  }
 
+  ##
+  # Curriculum
+  ##
 
-##
-# Curriculum
-##
-
-
-def _curriculum(*, rough: bool, play: bool) -> dict[str, CurriculumTermCfg]:
-  if play:
-    return {}
-  curriculum = {}
-  if rough:
-    curriculum["terrain_levels"] = CurriculumTermCfg(
+  curriculum = {
+    "terrain_levels": CurriculumTermCfg(
       func=mdp.terrain_levels_vel,
       params={"command_name": "twist"},
-    )
-  curriculum["command_vel"] = CurriculumTermCfg(
-    func=mdp.commands_vel,
-    params={
-      "command_name": "twist",
-      "velocity_stages": [
-        {"step": 0, "lin_vel_x": (-1.0, 1.0), "ang_vel_z": (-0.5, 0.5)},
-        {"step": 5000 * 24, "lin_vel_x": (-1.5, 2.0), "ang_vel_z": (-0.7, 0.7)},
-        {"step": 10000 * 24, "lin_vel_x": (-2.0, 3.0)},
-      ],
-    },
-  )
-  return curriculum
+    ),
+    "command_vel": CurriculumTermCfg(
+      func=mdp.commands_vel,
+      params={
+        "command_name": "twist",
+        "velocity_stages": [
+          {"step": 0, "lin_vel_x": (-1.0, 1.0), "ang_vel_z": (-0.5, 0.5)},
+          {"step": 5000 * 24, "lin_vel_x": (-1.5, 2.0), "ang_vel_z": (-0.7, 0.7)},
+          {"step": 10000 * 24, "lin_vel_x": (-2.0, 3.0)},
+        ],
+      },
+    ),
+  }
 
-
-##
-# Assembly
-##
-
-
-def _make_k1_velocity_env_cfg(
-  *,
-  rough: bool,
-  play: bool,
-  action_scale: float | dict[str, float] = _K1_ACTION_SCALE,
-) -> ManagerBasedRlEnvCfg:
-  if rough:
-    terrain = TerrainEntityCfg(
-      terrain_type="generator",
-      terrain_generator=(
-        replace(
-          ROUGH_TERRAINS_CFG,
-          curriculum=False,
-          num_cols=5,
-          num_rows=5,
-          border_width=10.0,
-        )
-        if play
-        else replace(ROUGH_TERRAINS_CFG, curriculum=True)
-      ),
-      max_init_terrain_level=5,
-    )
-  else:
-    terrain = TerrainEntityCfg(
-      terrain_type="plane",
-      terrain_generator=None,
-      max_init_terrain_level=5,
-    )
+  ##
+  # Assemble and return
+  ##
 
   return ManagerBasedRlEnvCfg(
     scene=SceneCfg(
-      terrain=terrain,
-      entities={"robot": get_k1_parallel_robot_cfg()},
-      sensors=_sensors(rough=rough),
+      terrain=TerrainEntityCfg(
+        terrain_type="generator",
+        terrain_generator=replace(ROUGH_TERRAINS_CFG),
+        max_init_terrain_level=5,
+      ),
+      sensors=(terrain_scan, foot_height_scan),
       num_envs=1,
       extent=2.0,
     ),
-    observations=_observations(rough=rough, play=play),
-    actions=_actions(action_scale=action_scale),
-    commands=_commands(rough=rough, play=play),
-    events=_events(play=play),
-    rewards=_rewards(),
-    terminations=_terminations(rough=rough, play=play),
-    curriculum=_curriculum(rough=rough, play=play),
-    metrics={"mean_action_acc": MetricsTermCfg(func=mdp.mean_action_acc)},
+    observations=observations,
+    actions=actions,
+    commands=commands,
+    events=events,
+    rewards=rewards,
+    terminations=terminations,
+    curriculum=curriculum,
+    metrics=metrics,
     viewer=ViewerConfig(
       origin_type=ViewerConfig.OriginType.ASSET_BODY,
       entity_name="robot",
-      body_name="Trunk",
+      body_name="",  # Set per-robot.
       distance=3.0,
       elevation=-5.0,
       azimuth=90.0,
     ),
     sim=SimulationCfg(
       nconmax=35,
-      # 1500 base + 100 for the four `connect` equalities of the ankle linkages
-      # (12 constraint rows per environment).
-      njmax=1600,
+      njmax=1500,
       mujoco=MujocoCfg(
         timestep=0.005,
         iterations=10,
@@ -747,26 +521,306 @@ def _make_k1_velocity_env_cfg(
       ),
     ),
     decimation=4,
-    # Effectively infinite episode length when playing.
-    episode_length_s=int(1e9) if play else 20.0,
+    episode_length_s=20.0,
   )
+
+
+##
+# K1 customization of the base configuration.
+##
 
 
 def k1_rough_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
   """Create Booster K1 rough terrain velocity tracking configuration."""
-  return _make_k1_velocity_env_cfg(rough=True, play=play)
+  cfg = make_velocity_env_cfg()
+
+  cfg.scene.entities = {"robot": get_k1_parallel_robot_cfg()}
+
+  # Set raycast sensor frame to K1 trunk.
+  for sensor in cfg.scene.sensors or ():
+    if sensor.name == "terrain_scan":
+      assert isinstance(sensor, RayCastSensorCfg)
+      assert isinstance(sensor.frame, ObjRef)
+      sensor.frame.name = "Trunk"
+
+  site_names = ("left_foot", "right_foot")
+  geom_names = ("left_foot_collision", "right_foot_collision")
+
+  # Wire foot height scan to per-foot sites.
+  for sensor in cfg.scene.sensors or ():
+    if sensor.name == "foot_height_scan":
+      assert isinstance(sensor, TerrainHeightSensorCfg)
+      sensor.frame = tuple(
+        ObjRef(type="site", name=s, entity="robot") for s in site_names
+      )
+      sensor.pattern = RingPatternCfg.single_ring(radius=0.03, num_samples=6)
+
+  feet_ground_cfg = ContactSensorCfg(
+    name="feet_ground_contact",
+    primary=ContactMatch(
+      mode="subtree",
+      pattern=r"^(left_foot_link|right_foot_link)$",
+      entity="robot",
+    ),
+    secondary=ContactMatch(mode="body", pattern="terrain"),
+    fields=("found", "force"),
+    reduce="netforce",
+    num_slots=1,
+    track_air_time=True,
+  )
+  self_collision_cfg = ContactSensorCfg(
+    name="self_collision",
+    primary=ContactMatch(mode="subtree", pattern="Trunk", entity="robot"),
+    secondary=ContactMatch(mode="subtree", pattern="Trunk", entity="robot"),
+    fields=("found", "force"),
+    reduce="none",
+    num_slots=1,
+    history_length=4,
+  )
+  # Any non-foot body touching the terrain is an illegal contact (fall).
+  nonfoot_ground_cfg = ContactSensorCfg(
+    name="non_foot_ground_contact",
+    primary=ContactMatch(
+      mode="body",
+      entity="robot",
+      pattern=r".*",
+      exclude=("left_foot_link", "right_foot_link"),
+    ),
+    secondary=ContactMatch(mode="body", pattern="terrain"),
+    fields=("found", "force"),
+    reduce="netforce",
+    num_slots=1,
+  )
+  cfg.scene.sensors = (cfg.scene.sensors or ()) + (
+    feet_ground_cfg,
+    nonfoot_ground_cfg,
+    self_collision_cfg,
+  )
+
+  if cfg.scene.terrain is not None and cfg.scene.terrain.terrain_generator is not None:
+    cfg.scene.terrain.terrain_generator.curriculum = True
+
+  # Action space: legs + arms. The head actuators keep driving their own PD
+  # control toward the HOME_KEYFRAME default.
+  joint_pos_action = cfg.actions["joint_pos"]
+  assert isinstance(joint_pos_action, JointPositionActionCfg)
+  joint_pos_action.actuator_names = _ACTION_JOINT_PATTERNS
+  joint_pos_action.scale = _K1_ACTION_SCALE
+
+  # The passive ankle/rod joints of the parallel linkage never reach the
+  # policy: joint observations and encoder bias cover the 20 action joints.
+  obs_joints = SceneEntityCfg("robot", joint_names=OBS_JOINT_NAMES, preserve_order=True)
+  for group in cfg.observations.values():
+    for term_name in ("joint_pos", "joint_vel"):
+      term = group.terms.get(term_name)
+      if term is not None:
+        term.params = {**term.params, "asset_cfg": obs_joints}
+  cfg.events["encoder_bias"].params["asset_cfg"] = obs_joints
+
+  # Randomizing the closed loop would start the ankles with a violated
+  # constraint, so resets only perturb joints outside it.
+  cfg.events["reset_robot_joints"].params["asset_cfg"] = SceneEntityCfg(
+    "robot", joint_names=K1_PARALLEL_FREE_RESET_JOINTS
+  )
+  cfg.events["reset_robot_joints"].params["position_range"] = (-0.1, 0.1)
+  cfg.events["reset_robot_joints"].params["velocity_range"] = (-0.1, 0.1)
+
+  # Four `connect` equalities add 12 constraint rows per environment.
+  assert cfg.sim.njmax is not None
+  cfg.sim.njmax += 100
+
+  cfg.viewer.body_name = "Trunk"
+
+  twist_cmd = cfg.commands["twist"]
+  assert isinstance(twist_cmd, UniformVelocityCommandCfg)
+  twist_cmd.viz.z_offset = 0.9  # Approx. trunk height above ground at HOME_KEYFRAME.
+
+  # Conservative velocity ranges given K1's narrow ankle-roll ROM
+  # (+-0.345 rad) and asymmetric hip-roll ROM, mirroring T1's caution.
+  twist_cmd.ranges.lin_vel_x = (-0.8, 0.8)
+  twist_cmd.ranges.lin_vel_y = (-0.5, 0.5)
+  twist_cmd.ranges.ang_vel_z = (-0.6, 0.6)
+
+  cfg.events["foot_friction"].params["asset_cfg"].geom_names = geom_names
+  cfg.events["base_com"].params["asset_cfg"].body_names = ("Trunk",)
+
+  # Sim2real domain randomization ported from booster_mjlab: PD gains, physically
+  # consistent inertia (the trunk carries the payload, so it moves further than
+  # the limbs) and terrain contact compliance.
+  cfg.events["pd_gains"] = EventTermCfg(
+    mode="startup",
+    func=envs_mdp.dr.pd_gains,
+    params={
+      "asset_cfg": SceneEntityCfg("robot", actuator_names=".*"),
+      "operation": "scale",
+      "kp_range": (0.8, 1.2),
+      "kd_range": (0.8, 1.2),
+    },
+  )
+  cfg.events["trunk_inertia"] = EventTermCfg(
+    mode="startup",
+    func=envs_mdp.dr.pseudo_inertia,
+    params={
+      "asset_cfg": SceneEntityCfg("robot", body_names=("Trunk",)),
+      "alpha_range": (-0.05, 0.05),
+      "t_range": (-0.05, 0.05),
+    },
+  )
+  cfg.events["limb_inertia"] = EventTermCfg(
+    mode="startup",
+    func=envs_mdp.dr.pseudo_inertia,
+    params={
+      "asset_cfg": SceneEntityCfg("robot", body_names=(r"(?!Trunk$).*",)),
+      "alpha_range": (-0.05, 0.05),
+      "t_range": (-0.025, 0.025),
+    },
+  )
+  cfg.events["terrain_contact"] = EventTermCfg(
+    mode="startup",
+    func=randomize_terrain_contact,
+    params={
+      "asset_cfg": SceneEntityCfg("terrain"),
+      "solref_ranges": {0: (0.006, 0.03), 1: (0.95, 1.05)},
+      "solimp_ranges": {0: (0.88, 0.92), 1: (0.94, 0.99), 2: (0.003, 0.01)},
+      "shared_random": True,
+    },
+  )
+
+  # Stochastic fall termination (gentler recovery signal than a hard 70 deg
+  # cutoff) plus termination on any non-foot ground contact.
+  cfg.terminations["fell_over"] = TerminationTermCfg(
+    func=stochastic_bad_orientation,
+    params={"limit_angle": math.radians(63.0), "probability": 0.02},
+  )
+  cfg.terminations["illegal_contact"] = TerminationTermCfg(
+    func=mdp.illegal_contact,
+    params={"sensor_name": nonfoot_ground_cfg.name},
+  )
+
+  # Restrict the pose reward to leg + arm joints. This is required, not just
+  # stylistic: variable_posture builds its std tensors positionally aligned
+  # to asset_cfg's resolved joint list, and every joint in that list must be
+  # covered by a std dict key or the reward crashes with a shape mismatch.
+  # The head (not actuated by the policy) and the passive linkage joints are
+  # excluded. Arm stds are tighter than the leg ones: arms may counter-swing a
+  # little but are pulled back to the home pose, away from the trunk.
+  cfg.rewards["pose"].params["asset_cfg"] = SceneEntityCfg(
+    "robot", joint_names=_POSE_JOINT_PATTERNS
+  )
+  cfg.rewards["pose"].params["std_standing"] = {".*": 0.05}
+  cfg.rewards["pose"].params["std_walking"] = {
+    r".*_Hip_Pitch": 0.3,
+    r".*_Hip_Roll": 0.15,
+    r".*_Hip_Yaw": 0.15,
+    r".*_Knee_Pitch": 0.4,
+    r".*_Ankle_Pitch": 0.15,
+    r".*_Ankle_Roll": 0.1,
+    r".*_Shoulder_.*": 0.08,
+    r".*_Elbow_.*": 0.08,
+  }
+  cfg.rewards["pose"].params["std_running"] = {
+    r".*_Hip_Pitch": 0.5,
+    r".*_Hip_Roll": 0.2,
+    r".*_Hip_Yaw": 0.2,
+    r".*_Knee_Pitch": 0.6,
+    r".*_Ankle_Pitch": 0.2,
+    r".*_Ankle_Roll": 0.12,
+    r".*_Shoulder_.*": 0.1,
+    r".*_Elbow_.*": 0.1,
+  }
+
+  cfg.rewards["upright"].params["asset_cfg"].body_names = ("Trunk",)
+  cfg.rewards["body_ang_vel"].params["asset_cfg"].body_names = ("Trunk",)
+
+  for reward_name in ["foot_clearance", "foot_slip"]:
+    cfg.rewards[reward_name].params["asset_cfg"].site_names = site_names
+
+  cfg.rewards["body_ang_vel"].weight = -0.06
+  cfg.rewards["angular_momentum"].weight = -0.02
+  cfg.rewards["air_time"].weight = 0.3
+
+  # K1 defaults to FULL_COLLISION (self-collision enabled everywhere, unlike
+  # Asimov's feet-only default). HOME_KEYFRAME arm angles are tuned to keep
+  # arms clear of the torso/legs, and the arms are now part of the action
+  # space, so penalize any self-contact (arm/torso/leg) to discourage the
+  # policy from exploiting it for balance.
+  cfg.rewards["self_collisions"] = RewardTermCfg(
+    func=mdp.self_collision_cost,
+    weight=-1.0,
+    params={"sensor_name": self_collision_cfg.name, "force_threshold": 10.0},
+  )
+
+  # Apply play mode overrides.
+  if play:
+    # Effectively infinite episode length.
+    cfg.episode_length_s = int(1e9)
+
+    cfg.observations["actor"].enable_corruption = False
+    cfg.events.pop("push_robot", None)
+    cfg.terminations.pop("out_of_terrain_bounds", None)
+    cfg.terminations.pop("illegal_contact", None)
+    cfg.curriculum = {}
+    cfg.events["randomize_terrain"] = EventTermCfg(
+      func=envs_mdp.randomize_terrain,
+      mode="reset",
+      params={},
+    )
+
+    if cfg.scene.terrain is not None:
+      if cfg.scene.terrain.terrain_generator is not None:
+        cfg.scene.terrain.terrain_generator.curriculum = False
+        cfg.scene.terrain.terrain_generator.num_cols = 5
+        cfg.scene.terrain.terrain_generator.num_rows = 5
+        cfg.scene.terrain.terrain_generator.border_width = 10.0
+
+  return cfg
 
 
 def k1_flat_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
   """Create Booster K1 flat terrain velocity tracking configuration."""
-  return _make_k1_velocity_env_cfg(rough=False, play=play)
+  cfg = k1_rough_env_cfg(play=play)
+
+  # Switch to flat terrain.
+  assert cfg.scene.terrain is not None
+  cfg.scene.terrain.terrain_type = "plane"
+  cfg.scene.terrain.terrain_generator = None
+
+  # Remove raycast sensor and height scan (no terrain to scan).
+  cfg.scene.sensors = tuple(
+    s for s in (cfg.scene.sensors or ()) if s.name != "terrain_scan"
+  )
+  del cfg.observations["actor"].terms["height_scan"]
+  del cfg.observations["critic"].terms["height_scan"]
+
+  cfg.terminations.pop("out_of_terrain_bounds", None)
+
+  # Disable terrain curriculum (not present in play mode since rough clears all).
+  cfg.curriculum.pop("terrain_levels", None)
+
+  if play:
+    twist_cmd = cfg.commands["twist"]
+    assert isinstance(twist_cmd, UniformVelocityCommandCfg)
+    twist_cmd.ranges.lin_vel_x = (-1.0, 1.2)
+    twist_cmd.ranges.ang_vel_z = (-0.7, 0.7)
+
+  return cfg
 
 
 def k1_flat_env_cfg_flashsac(play: bool = False) -> ManagerBasedRlEnvCfg:
   """Create Booster K1 flat terrain velocity tracking configuration for FlashSAC."""
-  return _make_k1_velocity_env_cfg(rough=False, play=play, action_scale=1.0)
+  cfg = k1_flat_env_cfg(play=play)
+
+  joint_pos_action = cfg.actions["joint_pos"]
+  assert isinstance(joint_pos_action, JointPositionActionCfg)
+  joint_pos_action.scale = 1.0
+  return cfg
 
 
 def k1_rough_env_cfg_flashsac(play: bool = False) -> ManagerBasedRlEnvCfg:
   """Create Booster K1 rough terrain velocity tracking configuration for FlashSAC."""
-  return _make_k1_velocity_env_cfg(rough=True, play=play, action_scale=1.0)
+  cfg = k1_rough_env_cfg(play=play)
+
+  joint_pos_action = cfg.actions["joint_pos"]
+  assert isinstance(joint_pos_action, JointPositionActionCfg)
+  joint_pos_action.scale = 1.0
+  return cfg
