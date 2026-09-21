@@ -43,21 +43,15 @@ register_mjlab_task(
   runner_cls=VelocityOffPolicyRunner,
 )
 
-# Opt-in variants. DA = left/right mirror data augmentation, Muon = Muon
-# optimizer for the actor/critic weight matrices.
+# Opt-in variants. DA = left/right mirror data augmentation.
 for _terrain, _env_cfg in (("Rough", k1_rough_env_cfg), ("Flat", k1_flat_env_cfg)):
-  for _suffix, _symmetry, _muon in (
-    ("PPO-DA", True, False),
-    ("PPO-Muon", False, True),
-    ("PPO-DA-Muon", True, True),
-  ):
-    register_mjlab_task(
-      task_id=f"Mjlab-Velocity-{_terrain}-Booster-K1-{_suffix}",
-      env_cfg=_env_cfg(),
-      play_env_cfg=_env_cfg(play=True),
-      rl_cfg=k1_ppo_runner_cfg(symmetry=_symmetry, muon=_muon),
-      runner_cls=VelocityOnPolicyRunner,
-    )
+  register_mjlab_task(
+    task_id=f"Mjlab-Velocity-{_terrain}-Booster-K1-PPO-DA",
+    env_cfg=_env_cfg(),
+    play_env_cfg=_env_cfg(play=True),
+    rl_cfg=k1_ppo_runner_cfg(symmetry=True),
+    runner_cls=VelocityOnPolicyRunner,
+  )
 
 for _terrain, _env_cfg in (
   ("Rough", k1_rough_env_cfg_flashsac),

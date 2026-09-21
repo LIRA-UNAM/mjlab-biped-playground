@@ -62,8 +62,6 @@ Each K1 velocity task also has opt-in variants, registered for both `Flat` and `
 | Suffix | Algorithm | What it adds |
 |---|---|---|
 | `-PPO-DA` | PPO | Left/right mirror data augmentation on every mini-batch |
-| `-PPO-Muon` | PPO | Muon optimizer for the actor/critic weight matrices (Adam for the rest) |
-| `-PPO-DA-Muon` | PPO | Both of the above |
 | `-FlashSAC-DA` | FlashSAC | Left/right mirror data augmentation on every replay mini-batch |
 
 The mirror lives in `config/k1/symmetry.py`. It derives its layout from the live observation manager and raises on any observation term it has no rule for, so a new term has to be given a mirror rule before it can be used with `-DA`.

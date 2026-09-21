@@ -7,7 +7,6 @@ from mjlab.rl import (
 )
 
 from playground.rl.config import (
-  RslRlMuonPpoAlgorithmCfg,
   RslRlSymmetryCfg,
 )
 from playground.rl.config import (
@@ -25,14 +24,11 @@ from playground.rl.flashsac import (
 _SYMMETRY_FUNC = "playground.tasks.velocity.config.k1.symmetry:augment_symmetries"
 
 
-def k1_ppo_runner_cfg(
-  symmetry: bool = False, muon: bool = False
-) -> RslRlOnPolicyRunnerCfg:
+def k1_ppo_runner_cfg(symmetry: bool = False) -> RslRlOnPolicyRunnerCfg:
   """Create RL runner configuration for Booster K1 velocity task.
 
   Args:
     symmetry: Augment every PPO mini-batch with its left/right mirror.
-    muon: Optimize the actor/critic weight matrices with Muon instead of Adam.
   """
   algorithm_kwargs: dict = dict(
     value_loss_coef=1.0,
@@ -53,18 +49,12 @@ def k1_ppo_runner_cfg(
       use_data_augmentation=True,
       data_augmentation_func=_SYMMETRY_FUNC,
     )
-  if muon:
-    algorithm = RslRlMuonPpoAlgorithmCfg(**algorithm_kwargs)
-  elif symmetry:
+  if symmetry:
     algorithm = RslRlSymPpoAlgorithmCfg(**algorithm_kwargs)
   else:
     algorithm = RslRlPpoAlgorithmCfg(**algorithm_kwargs)
 
-  experiment_name = "k1_velocity"
-  if symmetry:
-    experiment_name += "_da"
-  if muon:
-    experiment_name += "_muon"
+  experiment_name = "k1_velocity_da" if symmetry else "k1_velocity"
 
   return RslRlOnPolicyRunnerCfg(
     actor=RslRlModelCfg(

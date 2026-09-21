@@ -35,13 +35,3 @@ class RslRlPpoAlgorithmCfg(MjlabRslRlPpoAlgorithmCfg):
   """mjlab's PPO config plus an optional symmetry config."""
 
   symmetry_cfg: RslRlSymmetryCfg | None = None
-
-
-@dataclass
-class RslRlMuonPpoAlgorithmCfg(RslRlPpoAlgorithmCfg):
-  """PPO with hybrid Muon (matrices) / Adam (everything else) updates."""
-
-  class_name: str = "playground.rl.muon:MuonPPO"
-  muon_weight_decay: float = 0.0
-  muon_momentum: float = 0.95
-  muon_ns_steps: int = 5
