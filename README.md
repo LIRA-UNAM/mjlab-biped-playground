@@ -55,6 +55,17 @@ Configs live under `src/playground/tasks/velocity/config/<robot>/`.
 > [!NOTE]
 > FlashSAC is off-policy, so it needs far fewer parallel environments than PPO. Train FlashSAC tasks with `--env.scene.num_envs 1024` instead of the larger PPO env counts.
 
+#### Opt-in Booster K1 variants
+
+Each K1 velocity task also has opt-in variants, registered for both `Flat` and `Rough` terrain (e.g. `Mjlab-Velocity-Flat-Booster-K1-PPO-DA`):
+
+| Suffix | Algorithm | What it adds |
+|---|---|---|
+| `-PPO-DA` | PPO | Left/right mirror data augmentation on every mini-batch |
+| `-FlashSAC-DA` | FlashSAC | Left/right mirror data augmentation on every replay mini-batch |
+
+The mirror lives in `config/k1/symmetry.py`. It derives its layout from the live observation manager and raises on any observation term it has no rule for, so a new term has to be given a mirror rule before it can be used with `-DA`.
+
 ### Getup Tasks
 
 <!-- Placeholder GIFs — replace with actual play-mode recordings per task. -->
