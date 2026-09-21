@@ -59,7 +59,7 @@ _K1_ACTION_SCALE = {
 # Joints seen by the policy/critic (joint_pos, joint_vel) and given an encoder
 # bias: the 20 actuated non-head joints in MJCF order. The passive ankle
 # pitch/roll and rod joints of the closed loop are excluded.
-_OBS_JOINT_NAMES = tuple(
+OBS_JOINT_NAMES = tuple(
   n for n in K1_PARALLEL_ACTUATED_JOINTS if not n.startswith("Head_")
 )
 
@@ -155,9 +155,7 @@ def k1_rough_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
 
   # The passive ankle/rod joints of the parallel linkage never reach the
   # policy: joint observations and encoder bias cover the 20 action joints.
-  obs_joints = SceneEntityCfg(
-    "robot", joint_names=_OBS_JOINT_NAMES, preserve_order=True
-  )
+  obs_joints = SceneEntityCfg("robot", joint_names=OBS_JOINT_NAMES, preserve_order=True)
   for group in cfg.observations.values():
     for term_name in ("joint_pos", "joint_vel"):
       term = group.terms.get(term_name)
