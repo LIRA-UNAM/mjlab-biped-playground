@@ -73,6 +73,8 @@ def test_collision_regex_matching(multi_geom_spec):
   """CollisionCfg should support regex pattern matching."""
   collision_cfg = CollisionCfg(
     geom_names_expr=(r"^(left|right)_foot\d_collision$",),
+    contype=1,
+    conaffinity=1,
     condim=3,
     priority=1,
     friction=(0.6,),
@@ -96,6 +98,8 @@ def test_collision_dict_field_resolution(multi_geom_spec):
   """CollisionCfg should support dict-based field resolution."""
   collision_cfg = CollisionCfg(
     geom_names_expr=(r".*_foot\d_collision$", "arm_collision"),
+    contype=1,
+    conaffinity=1,
     condim={r".*_foot\d_collision$": 3, "arm_collision": 1},
     priority={r".*_foot\d_collision$": 2, "arm_collision": 0},
   )
@@ -113,7 +117,12 @@ def test_collision_dict_field_resolution(multi_geom_spec):
 def test_collision_disable_other_geoms(multi_geom_spec):
   """CollisionCfg should disable non-matching geoms when requested."""
   collision_cfg = CollisionCfg(
-    geom_names_expr=("left_foot1_collision",), contype=2, disable_other_geoms=True
+    geom_names_expr=("left_foot1_collision",),
+    contype=2,
+    conaffinity=1,
+    condim=3,
+    priority=0,
+    disable_other_geoms=True,
   )
   collision_cfg.edit_spec(multi_geom_spec)
 
