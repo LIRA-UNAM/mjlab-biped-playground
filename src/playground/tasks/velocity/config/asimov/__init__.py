@@ -5,7 +5,7 @@ from .env_cfgs import asimov_flat_env_cfg, asimov_rough_env_cfg
 from .rl_cfg import asimov_ppo_runner_cfg
 
 register_mjlab_task(
-  task_id="Mjlab-Velocity-Rough-Asimov",
+  task_id="Pumas-Velocity-Rough-Asimov",
   env_cfg=asimov_rough_env_cfg(),
   play_env_cfg=asimov_rough_env_cfg(play=True),
   rl_cfg=asimov_ppo_runner_cfg(),
@@ -13,7 +13,7 @@ register_mjlab_task(
 )
 
 register_mjlab_task(
-  task_id="Mjlab-Velocity-Flat-Asimov",
+  task_id="Pumas-Velocity-Flat-Asimov",
   env_cfg=asimov_flat_env_cfg(),
   play_env_cfg=asimov_flat_env_cfg(play=True),
   rl_cfg=asimov_ppo_runner_cfg(),

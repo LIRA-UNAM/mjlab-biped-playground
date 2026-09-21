@@ -7,10 +7,10 @@ the task id is a positional argument, everything else is a tyro-parsed
 `ExportConfig`.
 
 Examples:
-  uv run python export_policy.py Mjlab-Velocity-Flat-Booster-T1-PPO \\
+  uv run python export_policy.py Pumas-Velocity-Flat-Booster-T1-PPO \\
       --checkpoint-file logs/rsl_rl/t1_velocity/wandb_checkpoints/mg5wodgg/model_2999.pt
 
-  uv run python export_policy.py Mjlab-Velocity-Flat-Booster-T1-FlashSAC \\
+  uv run python export_policy.py Pumas-Velocity-Flat-Booster-T1-FlashSAC \\
       --wandb-run-path my-entity/t1_velocity/abcd1234
 """
 
@@ -47,7 +47,7 @@ class ExportConfig:
   """Directory the ONNX file is written into."""
   filename: str | None = None
   """ONNX output filename. Defaults to a slugified version of the task id
-  (e.g. 'mjlab_velocity_flat_booster_t1_ppo.onnx') so exporting different
+  (e.g. 'pumas_velocity_flat_booster_t1_ppo.onnx') so exporting different
   tasks into the same `export_dir` doesn't silently overwrite each other."""
   device: str = "cpu"
   """Device used to build the env/runner and load the checkpoint. The
@@ -57,8 +57,8 @@ class ExportConfig:
 def _default_filename(task_id: str) -> str:
   """Slugify a task id into a default ONNX filename.
 
-  E.g. 'Mjlab-Velocity-Flat-Booster-T1-PPO' ->
-  'mjlab_velocity_flat_booster_t1_ppo.onnx'.
+  E.g. 'Pumas-Velocity-Flat-Booster-T1-PPO' ->
+  'pumas_velocity_flat_booster_t1_ppo.onnx'.
   """
   slug = re.sub(r"[^0-9a-zA-Z]+", "_", task_id).strip("_").lower()
   return f"{slug}.onnx"
