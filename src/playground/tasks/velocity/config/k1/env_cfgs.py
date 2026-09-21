@@ -1,5 +1,7 @@
 """Booster K1 velocity tracking environment configurations."""
 
+import math
+
 from playground.asset_zoo.robots.k1.k1_parallel_constants import (
   K1_PARALLEL_ACTION_SCALE,
   K1_PARALLEL_ACTUATED_JOINTS,
@@ -7,12 +9,16 @@ from playground.asset_zoo.robots.k1.k1_parallel_constants import (
   get_k1_parallel_robot_cfg,
 )
 
+from playground.tasks.velocity.mdp.terminations import stochastic_bad_orientation
+from playground.tasks.velocity.mdp.terrain import randomize_terrain_contact
+
 from mjlab.envs import ManagerBasedRlEnvCfg
 from mjlab.envs import mdp as envs_mdp
 from mjlab.envs.mdp.actions import JointPositionActionCfg
 from mjlab.managers.event_manager import EventTermCfg
 from mjlab.managers.reward_manager import RewardTermCfg
 from mjlab.managers.scene_entity_config import SceneEntityCfg
+from mjlab.managers.termination_manager import TerminationTermCfg
 from mjlab.sensor import (
   ContactMatch,
   ContactSensorCfg,
@@ -117,8 +123,23 @@ def k1_rough_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
     num_slots=1,
     history_length=4,
   )
+  # Any non-foot body touching the terrain is an illegal contact (fall).
+  nonfoot_ground_cfg = ContactSensorCfg(
+    name="non_foot_ground_contact",
+    primary=ContactMatch(
+      mode="body",
+      entity="robot",
+      pattern=r".*",
+      exclude=("left_foot_link", "right_foot_link"),
+    ),
+    secondary=ContactMatch(mode="body", pattern="terrain"),
+    fields=("found", "force"),
+    reduce="netforce",
+    num_slots=1,
+  )
   cfg.scene.sensors = (cfg.scene.sensors or ()) + (
     feet_ground_cfg,
+    nonfoot_ground_cfg,
     self_collision_cfg,
   )
 
@@ -149,6 +170,8 @@ def k1_rough_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
   cfg.events["reset_robot_joints"].params["asset_cfg"] = SceneEntityCfg(
     "robot", joint_names=K1_PARALLEL_FREE_RESET_JOINTS
   )
+  cfg.events["reset_robot_joints"].params["position_range"] = (-0.1, 0.1)
+  cfg.events["reset_robot_joints"].params["velocity_range"] = (-0.1, 0.1)
 
   # Four `connect` equalities add 12 constraint rows per environment.
   cfg.sim.njmax += 100
@@ -167,6 +190,59 @@ def k1_rough_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
 
   cfg.events["foot_friction"].params["asset_cfg"].geom_names = geom_names
   cfg.events["base_com"].params["asset_cfg"].body_names = ("Trunk",)
+
+  # Sim2real domain randomization ported from booster_mjlab: PD gains, physically
+  # consistent inertia (the trunk carries the payload, so it moves further than
+  # the limbs) and terrain contact compliance.
+  cfg.events["pd_gains"] = EventTermCfg(
+    mode="startup",
+    func=envs_mdp.dr.pd_gains,
+    params={
+      "asset_cfg": SceneEntityCfg("robot", actuator_names=".*"),
+      "operation": "scale",
+      "kp_range": (0.8, 1.2),
+      "kd_range": (0.8, 1.2),
+    },
+  )
+  cfg.events["trunk_inertia"] = EventTermCfg(
+    mode="startup",
+    func=envs_mdp.dr.pseudo_inertia,
+    params={
+      "asset_cfg": SceneEntityCfg("robot", body_names=("Trunk",)),
+      "alpha_range": (-0.05, 0.05),
+      "t_range": (-0.05, 0.05),
+    },
+  )
+  cfg.events["limb_inertia"] = EventTermCfg(
+    mode="startup",
+    func=envs_mdp.dr.pseudo_inertia,
+    params={
+      "asset_cfg": SceneEntityCfg("robot", body_names=(r"(?!Trunk$).*",)),
+      "alpha_range": (-0.05, 0.05),
+      "t_range": (-0.025, 0.025),
+    },
+  )
+  cfg.events["terrain_contact"] = EventTermCfg(
+    mode="startup",
+    func=randomize_terrain_contact,
+    params={
+      "asset_cfg": SceneEntityCfg("terrain"),
+      "solref_ranges": {0: (0.006, 0.03), 1: (0.95, 1.05)},
+      "solimp_ranges": {0: (0.88, 0.92), 1: (0.94, 0.99), 2: (0.003, 0.01)},
+      "shared_random": True,
+    },
+  )
+
+  # Stochastic fall termination (gentler recovery signal than a hard 70 deg
+  # cutoff) plus termination on any non-foot ground contact.
+  cfg.terminations["fell_over"] = TerminationTermCfg(
+    func=stochastic_bad_orientation,
+    params={"limit_angle": math.radians(63.0), "probability": 0.02},
+  )
+  cfg.terminations["illegal_contact"] = TerminationTermCfg(
+    func=mdp.illegal_contact,
+    params={"sensor_name": nonfoot_ground_cfg.name},
+  )
 
   # Restrict the pose reward to leg + arm joints. This is required, not just
   # stylistic: variable_posture builds its std tensors positionally aligned
@@ -229,6 +305,7 @@ def k1_rough_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
     cfg.observations["actor"].enable_corruption = False
     cfg.events.pop("push_robot", None)
     cfg.terminations.pop("out_of_terrain_bounds", None)
+    cfg.terminations.pop("illegal_contact", None)
     cfg.curriculum = {}
     cfg.events["randomize_terrain"] = EventTermCfg(
       func=envs_mdp.randomize_terrain,
