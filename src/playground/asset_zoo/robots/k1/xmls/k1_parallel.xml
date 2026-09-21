@@ -1,4 +1,4 @@
-<mujoco model="K1">
+<mujoco model="K1_parallel">
   <compiler angle="radian" meshdir="meshes/" autolimits="true" />
 
   <option timestep="0.002" tolerance="1e-8" impratio="1" solver="Newton" />
@@ -141,17 +141,43 @@
               <joint name="Left_Knee_Pitch" pos="0 0 0" axis="0 1 0" range="0 2.23" armature="0.095625" />
               <geom type="mesh" contype="0" conaffinity="0" group="2" density="0" mesh="Left_Shank" material="medium_gray" />
               <geom name="left_shank_collision" size="0.045 0.035" quat="0.707105 0.707108 0 0" type="cylinder" rgba="0.75294 0.75294 0.75294 1" group="3" />
-              <geom name="left_shank_lower_collision" size="0.035 0.035 0.05" pos="0 0 -0.13" type="box" rgba="0.75294 0.75294 0.75294 1" group="3" />
+              <geom name="left_shank_lower_collision" size="0.035 0.05 0.05" pos="0 0 -0.13" type="box" rgba="0.75294 0.75294 0.75294 1" group="3" />
+              <body name="Left_Ankle_Crank_A" pos="-0.00148194 0.0242 -0.081637428">
+                <inertial pos="0.0204245077 0 -0.0017576937" mass="0.03" diaginertia="2e-05 2e-05 2e-05" />
+                <joint name="Left_Ankle_A" pos="0 0 0" axis="0 1 0" range="-0.55 0.8" armature="0.0282528" damping="0.1" />
+                <geom type="capsule" fromto="0 0 0 0.0408490153 0 -0.00351538739" size="0.008" rgba="0.85 0.35 0.25 1" contype="0" conaffinity="0" group="2" density="0" />
+                <body name="Left_Ankle_Rod_A" pos="0.0408490153 0 -0.00351538739">
+                  <inertial pos="-0.0340850077 0 -0.0712685923" mass="0.02" diaginertia="1e-05 1e-05 1e-05" />
+                  <joint name="Left_Ankle_Rod_A_Pitch" pos="0 0 0" axis="0 1 0" limited="false" armature="0.0001" damping="0.01" />
+                  <joint name="Left_Ankle_Rod_A_Roll" pos="0 0 0" axis="1 0 0" limited="false" armature="0.0001" damping="0.01" />
+                  <geom type="capsule" fromto="0 0 0 -0.0681700153 0 -0.142537185" size="0.005" rgba="0.85 0.35 0.25 1" contype="0" conaffinity="0" group="2" density="0" />
+                  <site name="left_ankle_rod_a_end" pos="-0.0681700153 0 -0.142537185" size="0.004" rgba="0.85 0.35 0.25 1" />
+                </body>
+              </body>
+              <body name="Left_Ankle_Crank_B" pos="-0.00967794 -0.0238 -0.140057167">
+                <inertial pos="0.016499762 0 -0.0121658479" mass="0.03" diaginertia="2e-05 2e-05 2e-05" />
+                <joint name="Left_Ankle_B" pos="0 0 0" axis="0 1 0" range="-0.5 1.1" armature="0.0282528" damping="0.1" />
+                <geom type="capsule" fromto="0 0 0 0.032999524 0 -0.0243316957" size="0.008" rgba="0.85 0.35 0.25 1" contype="0" conaffinity="0" group="2" density="0" />
+                <body name="Left_Ankle_Rod_B" pos="0.032999524 0 -0.0243316957">
+                  <inertial pos="-0.026062262 0 -0.0316505686" mass="0.02" diaginertia="1e-05 1e-05 1e-05" />
+                  <joint name="Left_Ankle_Rod_B_Pitch" pos="0 0 0" axis="0 1 0" limited="false" armature="0.0001" damping="0.01" />
+                  <joint name="Left_Ankle_Rod_B_Roll" pos="0 0 0" axis="1 0 0" limited="false" armature="0.0001" damping="0.01" />
+                  <geom type="capsule" fromto="0 0 0 -0.052124524 0 -0.0633011373" size="0.005" rgba="0.85 0.35 0.25 1" contype="0" conaffinity="0" group="2" density="0" />
+                  <site name="left_ankle_rod_b_end" pos="-0.052124524 0 -0.0633011373" size="0.004" rgba="0.85 0.35 0.25 1" />
+                </body>
+              </body>
               <body name="Left_Ankle_Cross" pos="0.00019706 0.0002 -0.24519">
                 <inertial pos="0 0 0" quat="0.5 0.5 0.5 0.5" mass="0.039" diaginertia="4e-06 4e-06 2e-06" />
-                <joint name="Left_Ankle_Pitch" pos="0 0 0" axis="0 1 0" range="-0.87 0.345" armature="0.0565" />
+                <joint name="Left_Ankle_Pitch" pos="0 0 0" axis="0 1 0" range="-0.87 0.345" damping="0.2" />
                 <geom type="mesh" contype="0" conaffinity="0" group="2" density="0" mesh="Left_Ankle_Cross" material="medium_gray" />
                 <body name="left_foot_link">
                   <site name="left_foot" size="0.01" />
                   <!-- Above the sole plane, biased forward over the contact patch. -->
                   <site name="left_foot_sole" pos="0.027364 0.001141 -0.03" size="0.005" />
+                  <site name="left_ankle_a_anchor" pos="-0.029 0.024 0.0175" size="0.004" rgba="0.1 0.8 0.1 1" />
+                  <site name="left_ankle_b_anchor" pos="-0.029 -0.024 0.0175" size="0.004" rgba="0.1 0.8 0.1 1" />
                   <inertial pos="0.011662 0.000244 -0.014364" quat="-0.00144487 0.663983 -0.00148176 0.747745" mass="0.494" diaginertia="0.0012267 0.00117 0.000247305" />
-                  <joint name="Left_Ankle_Roll" pos="0 0 0" axis="1 0 0" range="-0.345 0.345" armature="0.0565" />
+                  <joint name="Left_Ankle_Roll" pos="0 0 0" axis="1 0 0" range="-0.345 0.345" damping="0.2" />
                   <geom type="mesh" contype="0" conaffinity="0" group="2" density="0" mesh="Left_Foot" material="medium_gray" />
                   <!-- <geom type="mesh" rgba="0.75294 0.75294 0.75294 1" mesh="Left_Foot" friction="0.1 0.005 0.0001"/> -->
                   <geom name="left_foot_collision" type="mesh" mesh="Left_Foot" rgba="0.75294 0.75294 0.75294 1" group="3" />
@@ -180,17 +206,43 @@
               <joint name="Right_Knee_Pitch" pos="0 0 0" axis="0 1 0" range="0 2.23" armature="0.095625" />
               <geom type="mesh" contype="0" conaffinity="0" group="2" density="0" mesh="Right_Shank" material="medium_gray" />
               <geom name="right_shank_collision" size="0.045 0.035" quat="0.707105 0.707108 0 0" type="cylinder" rgba="0.75294 0.75294 0.75294 1" group="3" />
-              <geom name="right_shank_lower_collision" size="0.035 0.035 0.05" pos="0 0 -0.13" type="box" rgba="0.75294 0.75294 0.75294 1" group="3" />
+              <geom name="right_shank_lower_collision" size="0.035 0.05 0.05" pos="0 0 -0.13" type="box" rgba="0.75294 0.75294 0.75294 1" group="3" />
+              <body name="Right_Ankle_Crank_A" pos="-0.00148194 -0.0242 -0.081637428">
+                <inertial pos="0.0204245077 0 -0.0017576937" mass="0.03" diaginertia="2e-05 2e-05 2e-05" />
+                <joint name="Right_Ankle_A" pos="0 0 0" axis="0 1 0" range="-0.55 0.8" armature="0.0282528" damping="0.1" />
+                <geom type="capsule" fromto="0 0 0 0.0408490153 0 -0.00351538739" size="0.008" rgba="0.85 0.35 0.25 1" contype="0" conaffinity="0" group="2" density="0" />
+                <body name="Right_Ankle_Rod_A" pos="0.0408490153 0 -0.00351538739">
+                  <inertial pos="-0.0340850077 0 -0.0712685923" mass="0.02" diaginertia="1e-05 1e-05 1e-05" />
+                  <joint name="Right_Ankle_Rod_A_Pitch" pos="0 0 0" axis="0 1 0" limited="false" armature="0.0001" damping="0.01" />
+                  <joint name="Right_Ankle_Rod_A_Roll" pos="0 0 0" axis="1 0 0" limited="false" armature="0.0001" damping="0.01" />
+                  <geom type="capsule" fromto="0 0 0 -0.0681700153 0 -0.142537185" size="0.005" rgba="0.85 0.35 0.25 1" contype="0" conaffinity="0" group="2" density="0" />
+                  <site name="right_ankle_rod_a_end" pos="-0.0681700153 0 -0.142537185" size="0.004" rgba="0.85 0.35 0.25 1" />
+                </body>
+              </body>
+              <body name="Right_Ankle_Crank_B" pos="-0.00967794 0.0238 -0.140057167">
+                <inertial pos="0.016499762 0 -0.0121658479" mass="0.03" diaginertia="2e-05 2e-05 2e-05" />
+                <joint name="Right_Ankle_B" pos="0 0 0" axis="0 1 0" range="-0.5 1.1" armature="0.0282528" damping="0.1" />
+                <geom type="capsule" fromto="0 0 0 0.032999524 0 -0.0243316957" size="0.008" rgba="0.85 0.35 0.25 1" contype="0" conaffinity="0" group="2" density="0" />
+                <body name="Right_Ankle_Rod_B" pos="0.032999524 0 -0.0243316957">
+                  <inertial pos="-0.026062262 0 -0.0316505686" mass="0.02" diaginertia="1e-05 1e-05 1e-05" />
+                  <joint name="Right_Ankle_Rod_B_Pitch" pos="0 0 0" axis="0 1 0" limited="false" armature="0.0001" damping="0.01" />
+                  <joint name="Right_Ankle_Rod_B_Roll" pos="0 0 0" axis="1 0 0" limited="false" armature="0.0001" damping="0.01" />
+                  <geom type="capsule" fromto="0 0 0 -0.052124524 0 -0.0633011373" size="0.005" rgba="0.85 0.35 0.25 1" contype="0" conaffinity="0" group="2" density="0" />
+                  <site name="right_ankle_rod_b_end" pos="-0.052124524 0 -0.0633011373" size="0.004" rgba="0.85 0.35 0.25 1" />
+                </body>
+              </body>
               <body name="Right_Ankle_Cross" pos="0.00019706 -0.0002 -0.24519">
                 <inertial pos="0 0 0" quat="0.5 0.5 0.5 0.5" mass="0.039" diaginertia="4e-06 4e-06 2e-06" />
-                <joint name="Right_Ankle_Pitch" pos="0 0 0" axis="0 1 0" range="-0.87 0.345" armature="0.0565" />
+                <joint name="Right_Ankle_Pitch" pos="0 0 0" axis="0 1 0" range="-0.87 0.345" damping="0.2" />
                 <geom type="mesh" contype="0" conaffinity="0" group="2" density="0" mesh="Right_Ankle_Cross" material="medium_gray" />
                 <body name="right_foot_link">
                   <site name="right_foot" size="0.01" />
                   <!-- Above the sole plane, biased forward over the contact patch. -->
                   <site name="right_foot_sole" pos="0.027364 -0.001141 -0.03" size="0.005" />
+                  <site name="right_ankle_a_anchor" pos="-0.029 -0.024 0.0175" size="0.004" rgba="0.1 0.8 0.1 1" />
+                  <site name="right_ankle_b_anchor" pos="-0.029 0.024 0.0175" size="0.004" rgba="0.1 0.8 0.1 1" />
                   <inertial pos="0.011662 -0.000244 -0.014364" quat="0.00144487 0.663983 0.00148176 0.747745" mass="0.494" diaginertia="0.0012267 0.00117 0.000247305" />
-                  <joint name="Right_Ankle_Roll" pos="0 0 0" axis="1 0 0" range="-0.345 0.345" armature="0.0565" />
+                  <joint name="Right_Ankle_Roll" pos="0 0 0" axis="1 0 0" range="-0.345 0.345" damping="0.2" />
                   <geom type="mesh" contype="0" conaffinity="0" group="2" density="0" mesh="Right_Foot" material="medium_gray" />
                   <!-- <geom type="mesh" rgba="0.75294 0.75294 0.75294 1" mesh="Right_Foot" friction="0.1 0.005 0.0001"/> -->
                   <geom name="right_foot_collision" type="mesh" mesh="Right_Foot" rgba="0.75294 0.75294 0.75294 1" group="3" />
@@ -202,6 +254,16 @@
       </body>
     </body>
   </worldbody>
+  <!-- Ankle closed loops. solref timeconst must be >= 2*timestep; 0.01 suits the
+       0.005 s step the mjlab tasks use (Booster's own model ships 0.002 for a
+       0.001 s step). Measured residual at 0.005 s: 0.6 mm median, 3.9 mm p99. -->
+  <equality>
+    <connect name="left_ankle_a_loop" site1="left_ankle_rod_a_end" site2="left_ankle_a_anchor" solref="0.01 1" solimp="0.95 0.99 0.001" />
+    <connect name="left_ankle_b_loop" site1="left_ankle_rod_b_end" site2="left_ankle_b_anchor" solref="0.01 1" solimp="0.95 0.99 0.001" />
+    <connect name="right_ankle_a_loop" site1="right_ankle_rod_a_end" site2="right_ankle_a_anchor" solref="0.01 1" solimp="0.95 0.99 0.001" />
+    <connect name="right_ankle_b_loop" site1="right_ankle_rod_b_end" site2="right_ankle_b_anchor" solref="0.01 1" solimp="0.95 0.99 0.001" />
+  </equality>
+
   <sensor>
     <velocimeter name="imu_lin_vel" site="imu" />
     <gyro name="imu_ang_vel" site="imu" />

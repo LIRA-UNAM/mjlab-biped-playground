@@ -24,6 +24,7 @@ def reset_fallen_or_standing(
   fall_height: float = 0.5,
   velocity_range: float = 0.5,
   asset_cfg: SceneEntityCfg = _DEFAULT_ASSET_CFG,
+  hold_default_joint_names: tuple[str, ...] = (),
 ) -> None:
   """Reset robots to either a random fallen configuration or standing.
 
@@ -38,6 +39,9 @@ def reset_fallen_or_standing(
     fall_height: Height (m) to place the robot when fallen.
     velocity_range: Root velocity sampled uniformly in [-range, range].
     asset_cfg: Asset configuration.
+    hold_default_joint_names: Joint names/regexes kept at their default position
+      (zero velocity) even in fallen resets, e.g. the joints of a closed kinematic
+      loop that would otherwise start with a violated constraint.
   """
   if env_ids is None:
     env_ids = torch.arange(env.num_envs, device=env.device, dtype=torch.int)
@@ -97,9 +101,17 @@ def reset_fallen_or_standing(
     joint_limits[..., 0], joint_limits[..., 1], joint_limits[..., 0].shape, env.device
   )
 
-  joint_pos = torch.where(mask, random_joint_pos, default_joint_pos[env_ids].clone())
+  randomize = mask.expand(-1, joint_limits.shape[1])
+  if hold_default_joint_names:
+    held_ids, _ = asset.find_joints(hold_default_joint_names)
+    randomize = randomize.clone()
+    randomize[:, held_ids] = False
+
+  joint_pos = torch.where(
+    randomize, random_joint_pos, default_joint_pos[env_ids].clone()
+  )
   joint_vel = torch.where(
-    mask,
+    randomize,
     sample_uniform(-velocity_range, velocity_range, joint_pos.shape, env.device),
     default_joint_vel[env_ids].clone(),
   )

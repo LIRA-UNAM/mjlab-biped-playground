@@ -1,8 +1,10 @@
 """Booster K1 velocity tracking environment configurations."""
 
-from playground.asset_zoo.robots.k1.k1_constants import (
-  K1_ACTION_SCALE,
-  get_k1_robot_cfg,
+from playground.asset_zoo.robots.k1.k1_parallel_constants import (
+  K1_PARALLEL_ACTION_SCALE,
+  K1_PARALLEL_ACTUATED_JOINTS,
+  K1_PARALLEL_FREE_RESET_JOINTS,
+  get_k1_parallel_robot_cfg,
 )
 
 from mjlab.envs import ManagerBasedRlEnvCfg
@@ -23,36 +25,63 @@ from mjlab.tasks.velocity import mdp
 from mjlab.tasks.velocity.mdp import UniformVelocityCommandCfg
 from mjlab.tasks.velocity.velocity_env_cfg import make_velocity_env_cfg
 
-# Leg-only actuator/joint patterns. Neck and arm actuators are intentionally
-# excluded from the action space; they hold their HOME_KEYFRAME default via
-# the entity's own PD actuators, keeping the upper body static and clear of
-# the legs while walking.
-_LEG_JOINT_PATTERNS = (
-  ".*_hip_pitch_joint",
-  ".*_hip_roll_joint",
-  ".*_hip_yaw_joint",
-  ".*_knee_pitch_joint",
-  ".*_ankle_pitch_joint",
-  ".*_ankle_roll_joint",
+# Leg actuator patterns. The ankle is driven by the two crank joints of the
+# parallel linkage (the ankle pitch/roll joints are passive).
+_LEG_ACTUATOR_PATTERNS = (
+  ".*_Hip_Pitch",
+  ".*_Hip_Roll",
+  ".*_Hip_Yaw",
+  ".*_Knee_Pitch",
+  ".*_Ankle_A",
+  ".*_Ankle_B",
 )
 
-_K1_LEG_ACTION_SCALE = {
-  k: v for k, v in K1_ACTION_SCALE.items() if k in _LEG_JOINT_PATTERNS
+# Arm actuator patterns. These match the keys of K1_PARALLEL_ACTION_SCALE.
+_ARM_ACTUATOR_PATTERNS = (
+  ".*_Shoulder_.*",
+  ".*_Elbow_.*",
+)
+
+# Legs + arms are the action space. The head is intentionally excluded; it
+# holds its HOME_KEYFRAME default via the entity's own PD actuator.
+_ACTION_JOINT_PATTERNS = _LEG_ACTUATOR_PATTERNS + _ARM_ACTUATOR_PATTERNS
+
+_K1_ACTION_SCALE = {
+  k: v for k, v in K1_PARALLEL_ACTION_SCALE.items() if k in _ACTION_JOINT_PATTERNS
 }
+
+# Joints seen by the policy/critic (joint_pos, joint_vel) and given an encoder
+# bias: the 20 actuated non-head joints in MJCF order. The passive ankle
+# pitch/roll and rod joints of the closed loop are excluded.
+_OBS_JOINT_NAMES = tuple(
+  n for n in K1_PARALLEL_ACTUATED_JOINTS if not n.startswith("Head_")
+)
+
+# Joints scored by the pose reward: the serial-equivalent ankle DOFs (passive
+# pitch/roll, so the std tables keep their meaning) plus the arms.
+_POSE_JOINT_PATTERNS = (
+  ".*_Hip_Pitch",
+  ".*_Hip_Roll",
+  ".*_Hip_Yaw",
+  ".*_Knee_Pitch",
+  ".*_Ankle_Pitch",
+  ".*_Ankle_Roll",
+  *_ARM_ACTUATOR_PATTERNS,
+)
 
 
 def k1_rough_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
   """Create Booster K1 rough terrain velocity tracking configuration."""
   cfg = make_velocity_env_cfg()
 
-  cfg.scene.entities = {"robot": get_k1_robot_cfg()}
+  cfg.scene.entities = {"robot": get_k1_parallel_robot_cfg()}
 
   # Set raycast sensor frame to K1 trunk.
   for sensor in cfg.scene.sensors or ():
     if sensor.name == "terrain_scan":
       assert isinstance(sensor, RayCastSensorCfg)
       assert isinstance(sensor.frame, ObjRef)
-      sensor.frame.name = "trunk"
+      sensor.frame.name = "Trunk"
 
   site_names = ("left_foot", "right_foot")
   geom_names = ("left_foot_collision", "right_foot_collision")
@@ -70,7 +99,7 @@ def k1_rough_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
     name="feet_ground_contact",
     primary=ContactMatch(
       mode="subtree",
-      pattern=r"^(left_ankle_roll_link|right_ankle_roll_link)$",
+      pattern=r"^(left_foot_link|right_foot_link)$",
       entity="robot",
     ),
     secondary=ContactMatch(mode="body", pattern="terrain"),
@@ -81,8 +110,8 @@ def k1_rough_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
   )
   self_collision_cfg = ContactSensorCfg(
     name="self_collision",
-    primary=ContactMatch(mode="subtree", pattern="trunk", entity="robot"),
-    secondary=ContactMatch(mode="subtree", pattern="trunk", entity="robot"),
+    primary=ContactMatch(mode="subtree", pattern="Trunk", entity="robot"),
+    secondary=ContactMatch(mode="subtree", pattern="Trunk", entity="robot"),
     fields=("found", "force"),
     reduce="none",
     num_slots=1,
@@ -96,15 +125,35 @@ def k1_rough_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
   if cfg.scene.terrain is not None and cfg.scene.terrain.terrain_generator is not None:
     cfg.scene.terrain.terrain_generator.curriculum = True
 
-  # Restrict the action space to legs only. Neck/arm actuators keep driving
-  # their own PD control toward the HOME_KEYFRAME default, holding the upper
-  # body static and out of the way of the legs.
+  # Action space: legs + arms. The head actuators keep driving their own PD
+  # control toward the HOME_KEYFRAME default.
   joint_pos_action = cfg.actions["joint_pos"]
   assert isinstance(joint_pos_action, JointPositionActionCfg)
-  joint_pos_action.actuator_names = _LEG_JOINT_PATTERNS
-  joint_pos_action.scale = _K1_LEG_ACTION_SCALE
+  joint_pos_action.actuator_names = _ACTION_JOINT_PATTERNS
+  joint_pos_action.scale = _K1_ACTION_SCALE
 
-  cfg.viewer.body_name = "trunk"
+  # The passive ankle/rod joints of the parallel linkage never reach the
+  # policy: joint observations and encoder bias cover the 20 action joints.
+  obs_joints = SceneEntityCfg(
+    "robot", joint_names=_OBS_JOINT_NAMES, preserve_order=True
+  )
+  for group in cfg.observations.values():
+    for term_name in ("joint_pos", "joint_vel"):
+      term = group.terms.get(term_name)
+      if term is not None:
+        term.params = {**term.params, "asset_cfg": obs_joints}
+  cfg.events["encoder_bias"].params["asset_cfg"] = obs_joints
+
+  # Randomizing the closed loop would start the ankles with a violated
+  # constraint, so resets only perturb joints outside it.
+  cfg.events["reset_robot_joints"].params["asset_cfg"] = SceneEntityCfg(
+    "robot", joint_names=K1_PARALLEL_FREE_RESET_JOINTS
+  )
+
+  # Four `connect` equalities add 12 constraint rows per environment.
+  cfg.sim.njmax += 100
+
+  cfg.viewer.body_name = "Trunk"
 
   twist_cmd = cfg.commands["twist"]
   assert isinstance(twist_cmd, UniformVelocityCommandCfg)
@@ -117,37 +166,42 @@ def k1_rough_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
   twist_cmd.ranges.ang_vel_z = (-0.6, 0.6)
 
   cfg.events["foot_friction"].params["asset_cfg"].geom_names = geom_names
-  cfg.events["base_com"].params["asset_cfg"].body_names = ("trunk",)
+  cfg.events["base_com"].params["asset_cfg"].body_names = ("Trunk",)
 
-  # Restrict the pose reward to leg joints only. This is required, not just
+  # Restrict the pose reward to leg + arm joints. This is required, not just
   # stylistic: variable_posture builds its std tensors positionally aligned
   # to asset_cfg's resolved joint list, and every joint in that list must be
   # covered by a std dict key or the reward crashes with a shape mismatch.
-  # Since arms/neck are not part of the action space, exclude them entirely
-  # from this reward.
+  # The head (not actuated by the policy) and the passive linkage joints are
+  # excluded. Arm stds are tighter than the leg ones: arms may counter-swing a
+  # little but are pulled back to the home pose, away from the trunk.
   cfg.rewards["pose"].params["asset_cfg"] = SceneEntityCfg(
-    "robot", joint_names=_LEG_JOINT_PATTERNS
+    "robot", joint_names=_POSE_JOINT_PATTERNS
   )
   cfg.rewards["pose"].params["std_standing"] = {".*": 0.05}
   cfg.rewards["pose"].params["std_walking"] = {
-    r".*_hip_pitch_joint": 0.3,
-    r".*_hip_roll_joint": 0.15,
-    r".*_hip_yaw_joint": 0.15,
-    r".*_knee_pitch_joint": 0.4,
-    r".*_ankle_pitch_joint": 0.15,
-    r".*_ankle_roll_joint": 0.1,
+    r".*_Hip_Pitch": 0.3,
+    r".*_Hip_Roll": 0.15,
+    r".*_Hip_Yaw": 0.15,
+    r".*_Knee_Pitch": 0.4,
+    r".*_Ankle_Pitch": 0.15,
+    r".*_Ankle_Roll": 0.1,
+    r".*_Shoulder_.*": 0.08,
+    r".*_Elbow_.*": 0.08,
   }
   cfg.rewards["pose"].params["std_running"] = {
-    r".*_hip_pitch_joint": 0.5,
-    r".*_hip_roll_joint": 0.2,
-    r".*_hip_yaw_joint": 0.2,
-    r".*_knee_pitch_joint": 0.6,
-    r".*_ankle_pitch_joint": 0.2,
-    r".*_ankle_roll_joint": 0.12,
+    r".*_Hip_Pitch": 0.5,
+    r".*_Hip_Roll": 0.2,
+    r".*_Hip_Yaw": 0.2,
+    r".*_Knee_Pitch": 0.6,
+    r".*_Ankle_Pitch": 0.2,
+    r".*_Ankle_Roll": 0.12,
+    r".*_Shoulder_.*": 0.1,
+    r".*_Elbow_.*": 0.1,
   }
 
-  cfg.rewards["upright"].params["asset_cfg"].body_names = ("trunk",)
-  cfg.rewards["body_ang_vel"].params["asset_cfg"].body_names = ("trunk",)
+  cfg.rewards["upright"].params["asset_cfg"].body_names = ("Trunk",)
+  cfg.rewards["body_ang_vel"].params["asset_cfg"].body_names = ("Trunk",)
 
   for reward_name in ["foot_clearance", "foot_slip"]:
     cfg.rewards[reward_name].params["asset_cfg"].site_names = site_names
@@ -158,9 +212,9 @@ def k1_rough_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
 
   # K1 defaults to FULL_COLLISION (self-collision enabled everywhere, unlike
   # Asimov's feet-only default). HOME_KEYFRAME arm angles are tuned to keep
-  # arms clear of the torso/legs, but penalize any incidental self-contact
-  # (e.g. from push_robot perturbations) to discourage the policy from
-  # exploiting arm/torso/leg contact for balance.
+  # arms clear of the torso/legs, and the arms are now part of the action
+  # space, so penalize any self-contact (arm/torso/leg) to discourage the
+  # policy from exploiting it for balance.
   cfg.rewards["self_collisions"] = RewardTermCfg(
     func=mdp.self_collision_cost,
     weight=-1.0,
@@ -221,12 +275,14 @@ def k1_flat_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
 
   return cfg
 
+
 def k1_flat_env_cfg_flashsac(play: bool = False) -> ManagerBasedRlEnvCfg:
   """Create Booster K1 flat terrain velocity tracking configuration for FlashSAC."""
   cfg = k1_flat_env_cfg(play=play)
 
   cfg.actions["joint_pos"].scale = 1.0
   return cfg
+
 
 def k1_rough_env_cfg_flashsac(play: bool = False) -> ManagerBasedRlEnvCfg:
   """Create Booster K1 rough terrain velocity tracking configuration for FlashSAC."""
