@@ -6,7 +6,7 @@ files) and each task gets a progress bar derived from the ``Time elapsed`` /
 ``ETA`` lines printed by the rsl_rl logger.
 
 Usage:
-  uv run train_queue train_queue.example.yaml
+  uv run train_queue queues/train_queue.example.yaml
 """
 
 from __future__ import annotations

@@ -1,5 +1,5 @@
 # Booster T1 getup task.
-# Run with: uv run train_queue t1_getup.train.yaml
+# Run with: uv run train_queue queues/t1_getup.train.yaml
 
 defaults:
   num_envs: 4096

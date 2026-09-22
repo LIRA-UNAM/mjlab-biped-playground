@@ -1,4 +1,4 @@
-# Queue of training runs for `uv run train_queue train_queue.example.yaml`.
+# Queue of training runs for `uv run train_queue queues/train_queue.example.yaml`.
 # Tasks run one after another; see `uv run list_envs` for valid task ids.
 
 defaults:              # optional, applied to every task unless overridden

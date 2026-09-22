@@ -136,10 +136,10 @@ uv run train Mjlab-Velocity-Rough-Asimov --env.scene.num-envs 4096
 
 #### Train several tasks in a row
 
-List the tasks (and `num_envs` per task) in a YAML file — see [`train_queue.example.yaml`](train_queue.example.yaml) — and run:
+List the tasks (and `num_envs` per task) in a YAML file — see [`queues/train_queue.example.yaml`](queues/train_queue.example.yaml) — and run:
 
 ```bash
-uv run train_queue train_queue.example.yaml
+uv run train_queue queues/train_queue.example.yaml
 ```
 
 Tasks run one at a time, and each starts as soon as the previous one finishes. Training output is hidden from the terminal; instead, each task gets a progress bar computed from the `Time elapsed` / `ETA` log lines. The full output of each run is saved to `logs/queue/<timestamp>/`. If a task fails, the queue moves on to the next one unless `stop_on_failure: true` is set. `Ctrl+C` stops the current run cleanly and skips the rest.

@@ -1,5 +1,5 @@
 # All Booster K1 velocity tasks.
-# Run with: uv run train_queue k1_velocity.train.yaml
+# Run with: uv run train_queue queues/k1_velocity.train.yaml
 
 defaults:
   num_envs: 4096
