@@ -123,7 +123,7 @@ def k1_flashsac_runner_cfg(symmetry: bool = False) -> RslRlFlashSacRunnerCfg:
     ),
     experiment_name="k1_velocity_flashsac_da" if symmetry else "k1_velocity_flashsac",
     wandb_project="k1_velocity",
-    save_interval=1_000,
+    save_interval=4_000,
     num_steps_per_env=1,
-    max_iterations=6_000,
+    max_iterations=20_000,
   )
