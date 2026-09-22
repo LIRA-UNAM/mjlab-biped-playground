@@ -70,6 +70,7 @@ dev = [
 train = "mjlab.scripts.train:main"
 play = "mjlab.scripts.play:main"
 list_envs = "mjlab.scripts.list_envs:main"
+train_queue = "playground.scripts.train_queue:main"
 
 [project.entry-points."mjlab.tasks"]
 playground = "playground"
