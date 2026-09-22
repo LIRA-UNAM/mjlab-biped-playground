@@ -53,7 +53,7 @@ Teaches the robot to track commanded linear/angular velocities while walking, on
 Configs live under `src/playground/tasks/velocity/config/<robot>/`.
 
 > [!NOTE]
-> FlashSAC is off-policy, so it needs far fewer parallel environments than PPO. Train FlashSAC tasks with `--env.scene.num_envs 1024` instead of the larger PPO env counts.
+> FlashSAC is off-policy, so it needs far fewer parallel environments than PPO. Train FlashSAC tasks with `--env.scene.num_envs 4096` instead of the larger PPO env counts.
 
 #### Opt-in Booster K1 variants
 
@@ -117,17 +117,17 @@ uv run train Mjlab-Velocity-Flat-Booster-T1-PPO --env.scene.num-envs 4096
 # or
 uv run train Mjlab-Velocity-Rough-Booster-T1-PPO --env.scene.num-envs 4096
 # or
-uv run train Mjlab-Velocity-Flat-Booster-T1-FlashSAC --env.scene.num_envs 1024
+uv run train Mjlab-Velocity-Flat-Booster-T1-FlashSAC --env.scene.num_envs 4096
 # or
-uv run train Mjlab-Velocity-Rough-Booster-T1-FlashSAC --env.scene.num_envs 1024
+uv run train Mjlab-Velocity-Rough-Booster-T1-FlashSAC --env.scene.num_envs 4096
 # or
 uv run train Mjlab-Velocity-Flat-Booster-K1-PPO --env.scene.num-envs 4096
 # or
 uv run train Mjlab-Velocity-Rough-Booster-K1-PPO --env.scene.num-envs 4096
 # or
-uv run train Mjlab-Velocity-Flat-Booster-K1-FlashSAC --env.scene.num_envs 1024
+uv run train Mjlab-Velocity-Flat-Booster-K1-FlashSAC --env.scene.num_envs 4096
 # or
-uv run train Mjlab-Velocity-Rough-Booster-K1-FlashSAC --env.scene.num_envs 1024
+uv run train Mjlab-Velocity-Rough-Booster-K1-FlashSAC --env.scene.num_envs 4096
 # or
 uv run train Mjlab-Velocity-Flat-Asimov --env.scene.num-envs 4096
 # or
