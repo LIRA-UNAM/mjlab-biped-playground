@@ -1,0 +1,11 @@
+# Booster K1 getup task.
+# Run with: uv run train_queue k1_getup.train.yaml
+
+defaults:
+  num_envs: 4096
+  extra_args: []
+
+stop_on_failure: false
+
+tasks:
+  - task: Pumas-Getup-Flat-Booster-K1
