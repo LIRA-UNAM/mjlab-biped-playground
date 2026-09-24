@@ -1,6 +1,9 @@
 """Booster K1 getup environment configuration."""
 
-from playground.asset_zoo.robots.k1.k1_constants import get_k1_robot_cfg
+from playground.asset_zoo.robots.k1.k1_parallel_constants import (
+  K1_PARALLEL_ACTUATED_JOINTS,
+  get_k1_parallel_robot_cfg,
+)
 from playground.tasks.getup import mdp
 from playground.tasks.getup.getup_env_cfg import make_getup_env_cfg
 from playground.tasks.getup.mdp.actions import SettleRelativeJointPositionActionCfg
@@ -14,20 +17,32 @@ from mjlab.managers.scene_entity_config import SceneEntityCfg
 from mjlab.sensor import ContactMatch, ContactSensorCfg
 
 # Derived from home keyframe.
-_TORSO_HEIGHT = 0.57
+_TORSO_HEIGHT = 0.5125
 
 
 def booster_k1_getup_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
   """Create Booster K1 getup task configuration."""
   cfg = make_getup_env_cfg()
 
-  cfg.scene.entities = {"robot": get_k1_robot_cfg()}
+  cfg.scene.entities = {"robot": get_k1_parallel_robot_cfg()}
+
+  # The passive ankle/rod joints of the parallel linkage never reach the
+  # policy: joint observations and encoder bias cover the 22 actuated joints.
+  actuated_joints = SceneEntityCfg(
+    "robot", joint_names=K1_PARALLEL_ACTUATED_JOINTS, preserve_order=True
+  )
+  for group in cfg.observations.values():
+    for term_name in ("joint_pos", "joint_vel"):
+      term = group.terms.get(term_name)
+      if term is not None:
+        term.params = {**term.params, "asset_cfg": actuated_joints}
+  cfg.events["encoder_bias"].params["asset_cfg"] = actuated_joints
 
   # Self-collision sensor.
   self_collision_cfg = ContactSensorCfg(
     name="self_collision",
-    primary=ContactMatch(mode="subtree", pattern="trunk", entity="robot"),
-    secondary=ContactMatch(mode="subtree", pattern="trunk", entity="robot"),
+    primary=ContactMatch(mode="subtree", pattern="Trunk", entity="robot"),
+    secondary=ContactMatch(mode="subtree", pattern="Trunk", entity="robot"),
     fields=("found", "force"),
     reduce="none",
     num_slots=1,
@@ -46,26 +61,40 @@ def booster_k1_getup_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
   # avoid a "sitting" local minimum.
   cfg.rewards["torso_height"].params["desired_height"] = _TORSO_HEIGHT
   cfg.rewards["torso_height"].params["asset_cfg"] = SceneEntityCfg(
-    "robot", body_names=("trunk",)
+    "robot", body_names=("Trunk",)
   )
   cfg.metrics["getup_success"].params["desired_height"] = _TORSO_HEIGHT
 
-  # Per-joint posture std: tight hips, medium knees and ankles, loose arms and neck.
+  # Per-joint posture std: tight hips, medium knees and ankles, loose arms and
+  # neck. Scored on the serial-equivalent ankle DOFs (passive pitch/roll), not
+  # the crank drives or rod joints of the parallel linkage.
+  cfg.rewards["posture"].params["asset_cfg"] = SceneEntityCfg(
+    "robot",
+    joint_names=(
+      ".*_Hip_.*",
+      ".*_Knee_Pitch",
+      ".*_Ankle_Pitch",
+      ".*_Ankle_Roll",
+      "Head_.*",
+      ".*_Shoulder_.*",
+      ".*_Elbow_.*",
+    ),
+  )
   cfg.rewards["posture"].params["std"] = {
-    r".*_hip_roll_joint": 0.08,
-    r".*_hip_yaw_joint": 0.08,
-    r".*_hip_pitch_joint": 0.12,
-    r".*_knee_pitch_joint": 0.15,
-    r".*_ankle_pitch_joint": 0.2,
-    r".*_ankle_roll_joint": 0.2,
-    r"(aahead_yaw_joint|aahead_pitch_joint)": 0.15,
-    r"(.*_shoulder.*|.*_elbow.*)": 0.5,
+    r".*_Hip_Roll": 0.08,
+    r".*_Hip_Yaw": 0.08,
+    r".*_Hip_Pitch": 0.12,
+    r".*_Knee_Pitch": 0.15,
+    r".*_Ankle_Pitch": 0.2,
+    r".*_Ankle_Roll": 0.2,
+    r"Head_.*": 0.15,
+    r"(.*_Shoulder_.*|.*_Elbow_.*)": 0.5,
   }
 
-  cfg.viewer.body_name = "trunk"
+  cfg.viewer.body_name = "Trunk"
 
   cfg.events["base_com"].params["asset_cfg"] = SceneEntityCfg(
-    "robot", body_names=("trunk",)
+    "robot", body_names=("Trunk",)
   )
 
   foot_geom_names = ("left_foot_collision", "right_foot_collision")
@@ -106,10 +135,16 @@ def booster_k1_getup_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
   )
 
   cfg.events["reset_fallen_or_standing"].params["fall_height"] = 0.7
+  # Randomizing the closed ankle loop would start it with a violated constraint.
+  cfg.events["reset_fallen_or_standing"].params["hold_default_joint_names"] = (
+    ".*_Ankle_.*",
+  )
 
   assert isinstance(cfg.actions["joint_pos"], SettleRelativeJointPositionActionCfg)
   cfg.actions["joint_pos"].settle_steps = 50  # 1s at 50Hz action rate.
   cfg.terminations["energy"].params["settle_steps"] = 50
+  # Actuators drive the cranks, not every joint: pair force and velocity by name.
+  cfg.terminations["energy"].params["match_by_name"] = True
 
   cfg.curriculum = {
     "action_rate_weight": CurriculumTermCfg(

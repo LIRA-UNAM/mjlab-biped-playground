@@ -14,7 +14,7 @@ requires = ["uv_build>=0.8.18,<0.9.0"]
 build-backend = "uv_build"
 
 [tool.uv.sources]
-mjlab = { git = "https://github.com/mujocolab/mjlab", tag = "v1.5.3" }
+mjlab = { git = "https://github.com/mujocolab/mjlab", tag = "v1.6.0" }
 warp-lang = { index = "nvidia", marker = "sys_platform != 'darwin'" }
 torch = [
   { index = "pytorch-cu128", marker = "sys_platform != 'darwin'" },
@@ -68,7 +68,9 @@ dev = [
 
 [project.scripts]
 train = "mjlab.scripts.train:main"
-play = "mjlab.scripts.play:main"
+play = "playground.scripts.play:main"
+list_envs = "mjlab.scripts.list_envs:main"
+train_queue = "playground.scripts.train_queue:main"
 
 [project.entry-points."mjlab.tasks"]
 playground = "playground"

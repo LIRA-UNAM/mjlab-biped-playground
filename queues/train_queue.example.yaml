@@ -1,0 +1,16 @@
+# Queue of training runs for `uv run train_queue queues/train_queue.example.yaml`.
+# Tasks run one after another; see `uv run list_envs` for valid task ids.
+
+defaults:              # optional, applied to every task unless overridden
+  num_envs: 4096       # -> --env.scene.num-envs
+  extra_args: []       # extra CLI args passed through to `train`
+
+stop_on_failure: false # true: abort the rest of the queue if a task fails
+
+tasks:
+  - task: Pumas-Velocity-Flat-Booster-K1-PPO
+    num_envs: 8192
+  - task: Pumas-Velocity-Flat-Booster-K1-FlashSAC
+    num_envs: 4096
+  # - task: Pumas-Velocity-Rough-Booster-K1-FlashSAC
+  #   extra_args: ["--agent.max-iterations", "20000"]

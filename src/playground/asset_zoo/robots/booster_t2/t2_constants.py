@@ -208,6 +208,8 @@ _foot_regex = r"^(left|right)_ankle_collision$"
 
 FULL_COLLISION = CollisionCfg(
   geom_names_expr=(".*_collision",),
+  contype=1,
+  conaffinity=1,
   solref=(0.01, 1),
   condim={_foot_regex: 6, ".*_collision": 3},
   friction={_foot_regex: (1, 5e-3, 5e-4), ".*_collision": (0.6,)},

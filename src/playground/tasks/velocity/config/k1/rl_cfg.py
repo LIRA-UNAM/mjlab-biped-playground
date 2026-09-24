@@ -6,6 +6,12 @@ from mjlab.rl import (
   RslRlPpoAlgorithmCfg,
 )
 
+from playground.rl.config import (
+  RslRlSymmetryCfg,
+)
+from playground.rl.config import (
+  RslRlPpoAlgorithmCfg as RslRlSymPpoAlgorithmCfg,
+)
 from playground.rl.flashsac import (
   RslRlFlashSacActorCfg,
   RslRlFlashSacAlgorithmCfg,
@@ -13,9 +19,43 @@ from playground.rl.flashsac import (
   RslRlFlashSacRunnerCfg,
 )
 
+# Left/right mirror used for data augmentation (see symmetry.py). Referenced by
+# its "module:function" path so the runner config stays serializable.
+_SYMMETRY_FUNC = "playground.tasks.velocity.config.k1.symmetry:augment_symmetries"
 
-def k1_ppo_runner_cfg() -> RslRlOnPolicyRunnerCfg:
-  """Create RL runner configuration for Booster K1 velocity task."""
+
+def k1_ppo_runner_cfg(symmetry: bool = False) -> RslRlOnPolicyRunnerCfg:
+  """Create RL runner configuration for Booster K1 velocity task.
+
+  Args:
+    symmetry: Augment every PPO mini-batch with its left/right mirror.
+  """
+  algorithm_kwargs: dict = dict(
+    value_loss_coef=1.0,
+    use_clipped_value_loss=True,
+    clip_param=0.2,
+    entropy_coef=0.01,
+    num_learning_epochs=5,
+    num_mini_batches=4,
+    learning_rate=1.0e-3,
+    schedule="adaptive",
+    gamma=0.99,
+    lam=0.95,
+    desired_kl=0.01,
+    max_grad_norm=1.0,
+  )
+  if symmetry:
+    algorithm_kwargs["symmetry_cfg"] = RslRlSymmetryCfg(
+      use_data_augmentation=True,
+      data_augmentation_func=_SYMMETRY_FUNC,
+    )
+  if symmetry:
+    algorithm = RslRlSymPpoAlgorithmCfg(**algorithm_kwargs)
+  else:
+    algorithm = RslRlPpoAlgorithmCfg(**algorithm_kwargs)
+
+  experiment_name = "k1_velocity_da" if symmetry else "k1_velocity"
+
   return RslRlOnPolicyRunnerCfg(
     actor=RslRlModelCfg(
       # Larger network than Asimov's: only legs are actuated, but
@@ -34,30 +74,21 @@ def k1_ppo_runner_cfg() -> RslRlOnPolicyRunnerCfg:
       activation="elu",
       obs_normalization=True,
     ),
-    algorithm=RslRlPpoAlgorithmCfg(
-      value_loss_coef=1.0,
-      use_clipped_value_loss=True,
-      clip_param=0.2,
-      entropy_coef=0.01,
-      num_learning_epochs=5,
-      num_mini_batches=4,
-      learning_rate=1.0e-3,
-      schedule="adaptive",
-      gamma=0.99,
-      lam=0.95,
-      desired_kl=0.01,
-      max_grad_norm=1.0,
-    ),
-    experiment_name="k1_velocity",
+    algorithm=algorithm,
+    experiment_name=experiment_name,
     wandb_project="k1_velocity",
-    save_interval=300,
+    save_interval=1_000,
     num_steps_per_env=24,
-    max_iterations=3_000,
+    max_iterations=6_000,
   )
 
 
-def k1_flashsac_runner_cfg() -> RslRlFlashSacRunnerCfg:
-  """Create FlashSAC (off-policy) RL runner configuration for Booster K1 velocity task."""
+def k1_flashsac_runner_cfg(symmetry: bool = False) -> RslRlFlashSacRunnerCfg:
+  """Create FlashSAC (off-policy) RL runner configuration for Booster K1 velocity task.
+
+  Args:
+    symmetry: Augment every replay mini-batch with its left/right mirror.
+  """
   return RslRlFlashSacRunnerCfg(
     actor=RslRlFlashSacActorCfg(
       num_blocks=2,
@@ -70,7 +101,7 @@ def k1_flashsac_runner_cfg() -> RslRlFlashSacRunnerCfg:
     algorithm=RslRlFlashSacAlgorithmCfg(
       replay_buffer_size=1_000_000,
       buffer_min_length=100_000,
-      num_mini_batches=2,
+      num_mini_batches=8,
       mini_batch_size=2048,
       n_steps=3,
       gamma=0.99,
@@ -80,10 +111,19 @@ def k1_flashsac_runner_cfg() -> RslRlFlashSacRunnerCfg:
       # further from the 0.15 default to sustain exploration past the point
       # where it was collapsing entropy too early on T1's equivalent config.
       temp_target_sigma=0.15,
+      symmetry_cfg=(
+        {
+          "data_augmentation_func": _SYMMETRY_FUNC,
+          "use_data_augmentation": True,
+          "use_mirror_loss": False,
+        }
+        if symmetry
+        else None
+      ),
     ),
-    experiment_name="k1_velocity_flashsac",
+    experiment_name="k1_velocity_flashsac_da" if symmetry else "k1_velocity_flashsac",
     wandb_project="k1_velocity",
-    save_interval=7_500,
+    save_interval=15_000,
     num_steps_per_env=1,
     max_iterations=75_000,
   )

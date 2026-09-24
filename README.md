@@ -53,7 +53,18 @@ Teaches the robot to track commanded linear/angular velocities while walking, on
 Configs live under `src/playground/tasks/velocity/config/<robot>/`.
 
 > [!NOTE]
-> FlashSAC is off-policy, so it needs far fewer parallel environments than PPO. Train FlashSAC tasks with `--env.scene.num_envs 1024` instead of the larger PPO env counts.
+> FlashSAC is off-policy, so it needs far fewer parallel environments than PPO. Train FlashSAC tasks with `--env.scene.num_envs 4096` instead of the larger PPO env counts.
+
+#### Opt-in Booster K1 variants
+
+Each K1 velocity task also has opt-in variants, registered for both `Flat` and `Rough` terrain (e.g. `Mjlab-Velocity-Flat-Booster-K1-PPO-DA`):
+
+| Suffix | Algorithm | What it adds |
+|---|---|---|
+| `-PPO-DA` | PPO | Left/right mirror data augmentation on every mini-batch |
+| `-FlashSAC-DA` | FlashSAC | Left/right mirror data augmentation on every replay mini-batch |
+
+The mirror lives in `config/k1/symmetry.py`. It derives its layout from the live observation manager and raises on any observation term it has no rule for, so a new term has to be given a mirror rule before it can be used with `-DA`.
 
 ### Getup Tasks
 
@@ -106,22 +117,32 @@ uv run train Mjlab-Velocity-Flat-Booster-T1-PPO --env.scene.num-envs 4096
 # or
 uv run train Mjlab-Velocity-Rough-Booster-T1-PPO --env.scene.num-envs 4096
 # or
-uv run train Mjlab-Velocity-Flat-Booster-T1-FlashSAC --env.scene.num_envs 1024
+uv run train Mjlab-Velocity-Flat-Booster-T1-FlashSAC --env.scene.num_envs 4096
 # or
-uv run train Mjlab-Velocity-Rough-Booster-T1-FlashSAC --env.scene.num_envs 1024
+uv run train Mjlab-Velocity-Rough-Booster-T1-FlashSAC --env.scene.num_envs 4096
 # or
 uv run train Mjlab-Velocity-Flat-Booster-K1-PPO --env.scene.num-envs 4096
 # or
 uv run train Mjlab-Velocity-Rough-Booster-K1-PPO --env.scene.num-envs 4096
 # or
-uv run train Mjlab-Velocity-Flat-Booster-K1-FlashSAC --env.scene.num_envs 1024
+uv run train Mjlab-Velocity-Flat-Booster-K1-FlashSAC --env.scene.num_envs 4096
 # or
-uv run train Mjlab-Velocity-Rough-Booster-K1-FlashSAC --env.scene.num_envs 1024
+uv run train Mjlab-Velocity-Rough-Booster-K1-FlashSAC --env.scene.num_envs 4096
 # or
 uv run train Mjlab-Velocity-Flat-Asimov --env.scene.num-envs 4096
 # or
 uv run train Mjlab-Velocity-Rough-Asimov --env.scene.num-envs 4096
 ```
+
+#### Train several tasks in a row
+
+List the tasks (and `num_envs` per task) in a YAML file — see [`queues/train_queue.example.yaml`](queues/train_queue.example.yaml) — and run:
+
+```bash
+uv run train_queue queues/train_queue.example.yaml
+```
+
+Tasks run one at a time, and each starts as soon as the previous one finishes. Training output is hidden from the terminal; instead, each task gets a progress bar computed from the `Time elapsed` / `ETA` log lines. The full output of each run is saved to `logs/queue/<timestamp>/`. If a task fails, the queue moves on to the next one unless `stop_on_failure: true` is set. `Ctrl+C` stops the current run cleanly and skips the rest.
 
 ### Evaluate Policy
 

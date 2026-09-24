@@ -172,11 +172,13 @@ KNEES_BENT_KEYFRAME = EntityCfg.InitialStateCfg(
 # Full collision including self-collisions
 FULL_COLLISION = CollisionCfg(
   geom_names_expr=(".*_collision",),
+  contype=1,
+  conaffinity=1,
   condim={
     r"^(left|right)_ankle_roll_link_collision$": 3,
     ".*_collision": 1,
   },
-  priority={r"^(left|right)_ankle_roll_link_collision$": 1},
+  priority={r"^(left|right)_ankle_roll_link_collision$": 1, ".*": 0},
   friction={r"^(left|right)_ankle_roll_link_collision$": (0.6,)},
 )
 

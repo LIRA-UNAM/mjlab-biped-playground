@@ -50,9 +50,9 @@ def t1_ppo_runner_cfg() -> RslRlOnPolicyRunnerCfg:
     ),
     experiment_name="t1_velocity",
     wandb_project="t1_velocity",
-    save_interval=300,
+    save_interval=1_000,
     num_steps_per_env=24,
-    max_iterations=3_000,
+    max_iterations=6_000,
   )
 
 
@@ -70,7 +70,7 @@ def t1_flashsac_runner_cfg() -> RslRlFlashSacRunnerCfg:
     algorithm=RslRlFlashSacAlgorithmCfg(
       replay_buffer_size=1_000_000,
       buffer_min_length=100_000,
-      num_mini_batches=2,
+      num_mini_batches=8,
       mini_batch_size=2048,
       n_steps=3,
       gamma=0.99,
@@ -87,7 +87,7 @@ def t1_flashsac_runner_cfg() -> RslRlFlashSacRunnerCfg:
     ),
     experiment_name="t1_velocity_flashsac",
     wandb_project="t1_velocity",
-    save_interval=7_500,
+    save_interval=1_000,
     num_steps_per_env=1,
-    max_iterations=75_000,
+    max_iterations=6_000,
   )
