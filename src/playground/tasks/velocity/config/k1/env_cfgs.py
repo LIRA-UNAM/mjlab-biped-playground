@@ -815,9 +815,7 @@ def k1_flat_env_cfg_flashsac(play: bool = False) -> ManagerBasedRlEnvCfg:
       params={
         "command_name": "twist",
         "velocity_stages": [
-          {"step": 0, "lin_vel_x": (-1.0, 1.0), "ang_vel_z": (-0.5, 0.5)},
-          {"step": 20_000, "lin_vel_x": (-1.5, 2.0), "ang_vel_z": (-0.7, 0.7)},
-          {"step": 40_000, "lin_vel_x": (-2.0, 3.0)},
+          {"step": 0, "lin_vel_x": (-2.0, 3.0), "ang_vel_z": (-0.7, 0.7)},
         ],
       },
     )
@@ -834,7 +832,7 @@ def k1_rough_env_cfg_flashsac(play: bool = False) -> ManagerBasedRlEnvCfg:
       params={
         "command_name": "twist",
         "velocity_stages": [
-          {"step": 0, "lin_vel_x": (-1.0, 1.0), "ang_vel_z": (-0.7, 0.7)},
+          {"step": 0, "lin_vel_x": (-2.0, 3.0), "ang_vel_z": (-0.7, 0.7)},
         ],
       },
     )
