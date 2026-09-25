@@ -473,8 +473,8 @@ def make_velocity_env_cfg() -> ManagerBasedRlEnvCfg:
         "command_name": "twist",
         "velocity_stages": [
           {"step": 0, "lin_vel_x": (-1.0, 1.0), "ang_vel_z": (-0.5, 0.5)},
-          {"step": 5000 * 24, "lin_vel_x": (-1.5, 2.0), "ang_vel_z": (-0.7, 0.7)},
-          {"step": 10000 * 24, "lin_vel_x": (-2.0, 3.0)},
+          {"step": 2500 * 24, "lin_vel_x": (-1.5, 2.0), "ang_vel_z": (-0.7, 0.7)},
+          {"step": 4000 * 24, "lin_vel_x": (-2.0, 3.0)},
         ],
       },
     ),
@@ -809,18 +809,34 @@ def k1_flat_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
 def k1_flat_env_cfg_flashsac(play: bool = False) -> ManagerBasedRlEnvCfg:
   """Create Booster K1 flat terrain velocity tracking configuration for FlashSAC."""
   cfg = k1_flat_env_cfg(play=play)
-
-  joint_pos_action = cfg.actions["joint_pos"]
-  assert isinstance(joint_pos_action, JointPositionActionCfg)
-  joint_pos_action.scale = 1.0
+  cfg.curriculum = {
+    "command_vel": CurriculumTermCfg(
+      func=mdp.commands_vel,
+      params={
+        "command_name": "twist",
+        "velocity_stages": [
+          {"step": 0, "lin_vel_x": (-1.0, 1.0), "ang_vel_z": (-0.5, 0.5)},
+          {"step": 20_000, "lin_vel_x": (-1.5, 2.0), "ang_vel_z": (-0.7, 0.7)},
+          {"step": 40_000, "lin_vel_x": (-2.0, 3.0)},
+        ],
+      },
+    )
+  }
   return cfg
 
 
 def k1_rough_env_cfg_flashsac(play: bool = False) -> ManagerBasedRlEnvCfg:
   """Create Booster K1 rough terrain velocity tracking configuration for FlashSAC."""
   cfg = k1_rough_env_cfg(play=play)
-
-  joint_pos_action = cfg.actions["joint_pos"]
-  assert isinstance(joint_pos_action, JointPositionActionCfg)
-  joint_pos_action.scale = 1.0
+  cfg.curriculum = {
+    "command_vel": CurriculumTermCfg(
+      func=mdp.commands_vel,
+      params={
+        "command_name": "twist",
+        "velocity_stages": [
+          {"step": 0, "lin_vel_x": (-1.0, 1.0), "ang_vel_z": (-0.7, 0.7)},
+        ],
+      },
+    )
+  }
   return cfg
