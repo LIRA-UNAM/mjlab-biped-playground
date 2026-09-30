@@ -827,12 +827,17 @@ def k1_rough_env_cfg_flashsac(play: bool = False) -> ManagerBasedRlEnvCfg:
   """Create Booster K1 rough terrain velocity tracking configuration for FlashSAC."""
   cfg = k1_rough_env_cfg(play=play)
   cfg.curriculum = {
+    "terrain_levels": CurriculumTermCfg(
+      func=mdp.terrain_levels_vel, params={"command_name": "twist"}
+    ),
     "command_vel": CurriculumTermCfg(
       func=mdp.commands_vel,
       params={
         "command_name": "twist",
         "velocity_stages": [
-          {"step": 0, "lin_vel_x": (-2.0, 3.0), "ang_vel_z": (-0.7, 0.7)},
+          {"step": 0, "lin_vel_x": (-1.0, 1.0), "ang_vel_z": (-0.5, 0.5)},
+          {"step": 25_000, "lin_vel_x": (-1.5, 2.0), "ang_vel_z": (-0.7, 0.7)},
+          {"step": 40_000, "lin_vel_x": (-2.0, 3.0)},
         ],
       },
     )
