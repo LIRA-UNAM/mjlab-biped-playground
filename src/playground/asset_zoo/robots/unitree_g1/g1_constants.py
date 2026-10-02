@@ -1,4 +1,4 @@
-"""Unitree G1 constants."""
+"""Unitree G1 (23-DOF) constants."""
 
 from pathlib import Path
 
@@ -79,20 +79,6 @@ ARMATURE_7520_22 = reflected_inertia_from_two_stage_planetary(
   ROTOR_INERTIAS_7520_22, GEARS_7520_22
 )
 
-ROTOR_INERTIAS_4010 = (
-  0.068e-4,
-  0.0,
-  0.0,
-)
-GEARS_4010 = (
-  1,
-  5,
-  5,
-)
-ARMATURE_4010 = reflected_inertia_from_two_stage_planetary(
-  ROTOR_INERTIAS_4010, GEARS_4010
-)
-
 ACTUATOR_5020 = ElectricActuator(
   reflected_inertia=ARMATURE_5020,
   velocity_limit=37.0,
@@ -108,11 +94,6 @@ ACTUATOR_7520_22 = ElectricActuator(
   velocity_limit=20.0,
   effort_limit=139.0,
 )
-ACTUATOR_4010 = ElectricActuator(
-  reflected_inertia=ARMATURE_4010,
-  velocity_limit=22.0,
-  effort_limit=5.0,
-)
 
 NATURAL_FREQ = 10 * 2.0 * 3.1415926535  # 10Hz
 DAMPING_RATIO = 2.0
@@ -120,12 +101,10 @@ DAMPING_RATIO = 2.0
 STIFFNESS_5020 = ARMATURE_5020 * NATURAL_FREQ**2
 STIFFNESS_7520_14 = ARMATURE_7520_14 * NATURAL_FREQ**2
 STIFFNESS_7520_22 = ARMATURE_7520_22 * NATURAL_FREQ**2
-STIFFNESS_4010 = ARMATURE_4010 * NATURAL_FREQ**2
 
 DAMPING_5020 = 2.0 * DAMPING_RATIO * ARMATURE_5020 * NATURAL_FREQ
 DAMPING_7520_14 = 2.0 * DAMPING_RATIO * ARMATURE_7520_14 * NATURAL_FREQ
 DAMPING_7520_22 = 2.0 * DAMPING_RATIO * ARMATURE_7520_22 * NATURAL_FREQ
-DAMPING_4010 = 2.0 * DAMPING_RATIO * ARMATURE_4010 * NATURAL_FREQ
 
 G1_ACTUATOR_5020 = BuiltinPositionActuatorCfg(
   target_names_expr=(
@@ -154,26 +133,12 @@ G1_ACTUATOR_7520_22 = BuiltinPositionActuatorCfg(
   effort_limit=ACTUATOR_7520_22.effort_limit,
   armature=ACTUATOR_7520_22.reflected_inertia,
 )
-G1_ACTUATOR_4010 = BuiltinPositionActuatorCfg(
-  target_names_expr=(".*_wrist_pitch_joint", ".*_wrist_yaw_joint"),
-  stiffness=STIFFNESS_4010,
-  damping=DAMPING_4010,
-  effort_limit=ACTUATOR_4010.effort_limit,
-  armature=ACTUATOR_4010.reflected_inertia,
-)
 
-# Waist pitch/roll and ankles are 4-bar linkages with 2 5020 actuators.
-# Due to the parallel linkage, the effective armature at the ankle and waist joints
+# Ankles are 4-bar linkages with 2 5020 actuators (waist roll/pitch are locked on the
+# 23-DOF G1). Due to the parallel linkage, the effective armature at the ankle joints
 # is configuration dependent. Since the exact geometry of the linkage is unknown, we
 # assume a nominal 1:1 gear ratio. Under this assumption, the joint armature in the
 # nominal configuration is approximated as the sum of the 2 actuators' armatures.
-G1_ACTUATOR_WAIST = BuiltinPositionActuatorCfg(
-  target_names_expr=("waist_pitch_joint", "waist_roll_joint"),
-  stiffness=STIFFNESS_5020 * 2,
-  damping=DAMPING_5020 * 2,
-  effort_limit=ACTUATOR_5020.effort_limit * 2,
-  armature=ACTUATOR_5020.reflected_inertia * 2,
-)
 G1_ACTUATOR_ANKLE = BuiltinPositionActuatorCfg(
   target_names_expr=(".*_ankle_pitch_joint", ".*_ankle_roll_joint"),
   stiffness=STIFFNESS_5020 * 2,
@@ -260,8 +225,6 @@ G1_ARTICULATION = EntityArticulationInfoCfg(
     G1_ACTUATOR_5020,
     G1_ACTUATOR_7520_14,
     G1_ACTUATOR_7520_22,
-    G1_ACTUATOR_4010,
-    G1_ACTUATOR_WAIST,
     G1_ACTUATOR_ANKLE,
   ),
   soft_joint_pos_limit_factor=0.9,
