@@ -21,7 +21,12 @@ from pathlib import Path
 
 import mjlab
 import tyro
+import torch
 from mjlab.envs import ManagerBasedRlEnv
+from mjlab.envs.mdp.actions.actions import (
+  JointPositionAction,
+  RelativeJointPositionAction,
+)
 from mjlab.rl import MjlabOnPolicyRunner, RslRlVecEnvWrapper
 from mjlab.rl.exporter_utils import attach_metadata_to_onnx, get_base_metadata
 from mjlab.scripts._cli import maybe_print_top_level_help
@@ -62,6 +67,46 @@ def _default_filename(task_id: str) -> str:
   """
   slug = re.sub(r"[^0-9a-zA-Z]+", "_", task_id).strip("_").lower()
   return f"{slug}.onnx"
+
+
+def _get_metadata(env: ManagerBasedRlEnv, run_path: str) -> dict:
+  """ONNX metadata for absolute and relative joint position actions.
+
+  mjlab's `get_base_metadata` asserts a `JointPositionAction`. Tasks using
+  `RelativeJointPositionAction` (e.g. getup: target = q + action * scale)
+  carry the same fields, so for those the action term is temporarily swapped
+  for an equivalent stand-in exposing `_scale`, and an `action_type` entry
+  is added so deployment code can tell the two apart.
+  """
+  joint_action = env.action_manager.get_term("joint_pos")
+  if isinstance(joint_action, JointPositionAction):
+    metadata = get_base_metadata(env, run_path=run_path)
+    metadata["action_type"] = "absolute"
+    return metadata
+  if not isinstance(joint_action, RelativeJointPositionAction):
+    raise TypeError(
+      f"Unsupported action term type for export: {type(joint_action).__name__}"
+    )
+
+  scale = joint_action.scale
+  num_actions = joint_action.action_dim
+  if isinstance(scale, torch.Tensor):
+    action_scale = scale[0].cpu().tolist()
+  else:
+    action_scale = [float(scale)] * num_actions
+
+  # Same fields as get_base_metadata; only the action term check differs.
+  stand_in = JointPositionAction.__new__(JointPositionAction)
+  stand_in._scale = scale
+  terms = env.action_manager._terms
+  terms["joint_pos"] = stand_in
+  try:
+    metadata = get_base_metadata(env, run_path=run_path)
+  finally:
+    terms["joint_pos"] = joint_action
+  metadata["action_scale"] = action_scale
+  metadata["action_type"] = "relative"
+  return metadata
 
 
 def run_export(task_id: str, cfg: ExportConfig) -> None:
@@ -112,7 +157,7 @@ def run_export(task_id: str, cfg: ExportConfig) -> None:
   runner.export_policy_to_onnx(cfg.export_dir, filename)
   onnx_path = str(Path(cfg.export_dir) / filename)
 
-  metadata = get_base_metadata(env.unwrapped, run_path=provenance)
+  metadata = _get_metadata(env.unwrapped, run_path=provenance)
   attach_metadata_to_onnx(onnx_path, metadata)
   print(f"[INFO]: Exported policy to {onnx_path}")
 
