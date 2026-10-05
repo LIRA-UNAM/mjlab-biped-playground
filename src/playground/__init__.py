@@ -5,6 +5,7 @@ Mjlab biped playground project
 from playground.tasks.getup.config.k1 import *  # noqa: F401, F403
 from playground.tasks.getup.config.t1 import *  # noqa: F401, F403
 from playground.tasks.velocity.config.k1 import *  # noqa: F401, F403
+from playground.tasks.velocity.config.g1 import *  # noqa: F401, F403
 from playground.tasks.velocity.config.t1 import *  # noqa: F401, F403
 
 # '''
