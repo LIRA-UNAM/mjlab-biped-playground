@@ -58,7 +58,9 @@ def unitree_g1_getup_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
   )
   cfg.metrics["getup_success"].params["desired_height"] = _TORSO_HEIGHT
 
-  # Per-joint posture std: tight hips, medium knees and ankles, loose arms and waist.
+  # Per-joint posture std (23-DOF G1): tight hips, medium knees and ankles, loose
+  # arms. Waist yaw is the only waist joint; it is kept tighter than the arms so
+  # the robot stands square instead of twisted (0.2, as in mjlab's G1 walking std).
   cfg.rewards["posture"].params["std"] = {
     r".*_hip_roll_joint": 0.08,
     r".*_hip_yaw_joint": 0.08,
@@ -66,7 +68,8 @@ def unitree_g1_getup_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
     r".*_knee_joint": 0.15,
     r".*_ankle_pitch_joint": 0.2,
     r".*_ankle_roll_joint": 0.2,
-    r"(waist.*|.*shoulder.*|.*elbow.*|.*wrist.*)": 0.5,
+    r"waist_yaw_joint": 0.2,
+    r"(.*_shoulder_.*_joint|.*_elbow_joint|.*_wrist_roll_joint)": 0.5,
   }
 
   cfg.viewer.body_name = "pelvis"
