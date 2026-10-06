@@ -44,8 +44,10 @@ def g1_rough_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
   cfg = make_velocity_env_cfg()
 
   # Seven capsules per foot need a larger contact budget than the base config.
-  cfg.sim.mujoco.ccd_iterations = 500
-  cfg.sim.contact_sensor_maxmatch = 500
+  # ccd_iterations stays at mjlab's default (50): mujoco_warp preallocates an EPA
+  # buffer of nconmax * num_envs * (6 + 5 * ccd_iterations) vec3s, so upstream's
+  # 500 needs ~8.6 GB at 4096 envs vs ~0.9 GB at 50.
+  cfg.sim.contact_sensor_maxmatch = 128
   cfg.sim.nconmax = 70
 
   cfg.scene.entities = {"robot": get_g1_robot_cfg()}
