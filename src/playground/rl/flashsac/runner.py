@@ -57,6 +57,8 @@ class MjlabOffPolicyRunner(OnPolicyRunner):
 
     self.cfg["algorithm"] = resolve_symmetry_config(self.cfg["algorithm"], self.env)
 
+    self._expose_action_scaling()
+
     alg_class: type[FlashSAC] = resolve_callable(self.cfg["algorithm"]["class_name"])  # type: ignore[assignment]
     self.alg = alg_class.construct_algorithm(obs, self.env, self.cfg, self.device)
 
@@ -77,6 +79,35 @@ class MjlabOffPolicyRunner(OnPolicyRunner):
     self._wall_time_offset = 0.0
     self._learn_start_time: float | None = None
     self.loaded_wall_time: float | None = None
+
+  def _expose_action_scaling(self) -> None:
+    """Expose the real per-joint action scale as env.action_bias/action_scale.
+
+    FlashSAC's entropy target (see flash_sac.py) is defined in physical action
+    units and corrects for the actor's raw-to-physical Jacobian via
+    ``actor.set_action_scaling(action_bias, action_scale)``, which it sources
+    from ``env.action_bias``/``env.action_scale``. Without this, it silently
+    falls back to identity scaling, so ``temp_target_sigma`` ends up meaning
+    "raw tanh-output units" instead of physical radians -- wildly inconsistent
+    across joints whenever mjlab's own ``joint_pos`` action scale isn't flat
+    (e.g. the per-joint dicts used by every velocity task here). Reading the
+    scale directly off the action term is what the upstream
+    ``FlashSACVecEnvWrapper`` this code was adapted from does, minus the
+    wrapper class -- these two attributes are all ``construct_algorithm``
+    actually looks for.
+    """
+    action_manager = self.env.unwrapped.action_manager
+    try:
+      joint_pos_term = action_manager.get_term("joint_pos")
+    except KeyError:
+      return
+    action_scale = joint_pos_term.scale
+    if isinstance(action_scale, torch.Tensor):
+      action_scale = action_scale[0].clone()
+    else:
+      action_scale = torch.full((joint_pos_term.action_dim,), float(action_scale))
+    self.env.action_scale = action_scale
+    self.env.action_bias = torch.zeros_like(action_scale)
 
   def learn(
     self, num_learning_iterations: int, init_at_random_ep_len: bool = False

@@ -13,14 +13,14 @@ tasks:
   - task: Pumas-Velocity-Flat-Booster-K1-PPO-DA
     num_envs: 4096
   - task: Pumas-Velocity-Flat-Booster-K1-FlashSAC
-    num_envs: 4096
+    num_envs: 1024
   - task: Pumas-Velocity-Flat-Booster-K1-FlashSAC-DA
-    num_envs: 4096
+    num_envs: 1024
   - task: Pumas-Velocity-Rough-Booster-K1-PPO
     num_envs: 4096
   - task: Pumas-Velocity-Rough-Booster-K1-PPO-DA
     num_envs: 4096
   - task: Pumas-Velocity-Rough-Booster-K1-FlashSAC
-    num_envs: 4096
+    num_envs: 1024
   - task: Pumas-Velocity-Rough-Booster-K1-FlashSAC-DA
-    num_envs: 4096
+    num_envs: 1024
