@@ -38,6 +38,21 @@ from mjlab.tasks.velocity.velocity_env_cfg import make_velocity_env_cfg
 
 _FOOT_BODIES = ("left_ankle_roll_link", "right_ankle_roll_link")
 
+# Leg-only action space. Waist yaw and arm actuators are excluded; they hold
+# their KNEES_BENT_KEYFRAME default via the entity's own PD actuators.
+_LEG_JOINT_PATTERNS = (
+  ".*_hip_pitch_joint",
+  ".*_hip_roll_joint",
+  ".*_hip_yaw_joint",
+  ".*_knee_joint",
+  ".*_ankle_pitch_joint",
+  ".*_ankle_roll_joint",
+)
+
+_G1_LEG_ACTION_SCALE = {
+  k: v for k, v in G1_ACTION_SCALE.items() if k in _LEG_JOINT_PATTERNS
+}
+
 
 def g1_rough_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
   """Create Unitree G1 rough terrain velocity tracking configuration."""
@@ -118,10 +133,11 @@ def g1_rough_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
   if cfg.scene.terrain is not None and cfg.scene.terrain.terrain_generator is not None:
     cfg.scene.terrain.terrain_generator.curriculum = True
 
-  # Action space: all 23 joints (legs, waist yaw, arms).
+  # Action space: legs only (12 joints). Joint observations stay full-body.
   joint_pos_action = cfg.actions["joint_pos"]
   assert isinstance(joint_pos_action, JointPositionActionCfg)
-  joint_pos_action.scale = G1_ACTION_SCALE
+  joint_pos_action.actuator_names = _LEG_JOINT_PATTERNS
+  joint_pos_action.scale = _G1_LEG_ACTION_SCALE
 
   cfg.events["reset_robot_joints"].params["position_range"] = (-0.1, 0.1)
   cfg.events["reset_robot_joints"].params["velocity_range"] = (-0.1, 0.1)
@@ -188,49 +204,34 @@ def g1_rough_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
     params={"sensor_name": nonfoot_ground_cfg.name},
   )
 
-  # Pose stds from mjlab's upstream G1 config, minus the joints the 23-DOF
-  # lacks (waist roll/pitch, wrist pitch/yaw):
+  # Restrict the pose reward to the policy-controlled leg joints. Waist and arms
+  # are PD-held at their default, so scoring them would only add reward noise.
+  # variable_posture needs a std key for every joint in this list.
+  cfg.rewards["pose"].params["asset_cfg"] = SceneEntityCfg(
+    "robot", joint_names=_LEG_JOINT_PATTERNS
+  )
+
+  # Leg pose stds from mjlab's upstream G1 config:
   # - Knees/hip_pitch get the loosest std to allow natural leg bending during stride.
   # - Hip roll/yaw stay tighter to prevent excessive lateral sway.
   # - Ankle roll is very tight for balance; ankle pitch looser for foot clearance.
-  # - Shoulders/elbows get moderate freedom for natural arm swing; the
-  #   self-collision penalty keeps them off the torso.
-  # - Wrist roll is loose since it does not affect balance much.
   # Running values are ~1.5-2x walking values to accommodate larger motion range.
   cfg.rewards["pose"].params["std_standing"] = {".*": 0.05}
   cfg.rewards["pose"].params["std_walking"] = {
-    # Lower body.
     r".*hip_pitch.*": 0.3,
     r".*hip_roll.*": 0.15,
     r".*hip_yaw.*": 0.15,
     r".*knee.*": 0.35,
     r".*ankle_pitch.*": 0.25,
     r".*ankle_roll.*": 0.1,
-    # Waist.
-    r".*waist_yaw.*": 0.2,
-    # Arms.
-    r".*shoulder_pitch.*": 0.15,
-    r".*shoulder_roll.*": 0.15,
-    r".*shoulder_yaw.*": 0.1,
-    r".*elbow.*": 0.15,
-    r".*wrist_roll.*": 0.3,
   }
   cfg.rewards["pose"].params["std_running"] = {
-    # Lower body.
     r".*hip_pitch.*": 0.5,
     r".*hip_roll.*": 0.2,
     r".*hip_yaw.*": 0.2,
     r".*knee.*": 0.6,
     r".*ankle_pitch.*": 0.35,
     r".*ankle_roll.*": 0.15,
-    # Waist.
-    r".*waist_yaw.*": 0.3,
-    # Arms.
-    r".*shoulder_pitch.*": 0.5,
-    r".*shoulder_roll.*": 0.2,
-    r".*shoulder_yaw.*": 0.15,
-    r".*elbow.*": 0.35,
-    r".*wrist_roll.*": 0.3,
   }
 
   cfg.rewards["upright"].params["asset_cfg"].body_names = ("torso_link",)
