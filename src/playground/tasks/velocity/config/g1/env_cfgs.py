@@ -14,6 +14,7 @@ from playground.asset_zoo.robots.unitree_g1.g1_constants import (
   get_g1_robot_cfg,
 )
 
+from playground.tasks.velocity.mdp.observations import remove_non_deployable_actor_terms
 from playground.tasks.velocity.mdp.terminations import stochastic_bad_orientation
 from playground.tasks.velocity.mdp.terrain import randomize_terrain_contact
 
@@ -57,6 +58,7 @@ _G1_LEG_ACTION_SCALE = {
 def g1_rough_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
   """Create Unitree G1 rough terrain velocity tracking configuration."""
   cfg = make_velocity_env_cfg()
+  remove_non_deployable_actor_terms(cfg)
 
   # Seven capsules per foot need a larger contact budget than the base config.
   # ccd_iterations stays at mjlab's default (50): mujoco_warp preallocates an EPA
@@ -293,11 +295,11 @@ def g1_flat_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
   cfg.scene.terrain.terrain_type = "plane"
   cfg.scene.terrain.terrain_generator = None
 
-  # Remove raycast sensor and height scan (no terrain to scan).
+  # Remove raycast sensor and the critic's height scan (no terrain to scan). The
+  # actor never sees it (see remove_non_deployable_actor_terms).
   cfg.scene.sensors = tuple(
     s for s in (cfg.scene.sensors or ()) if s.name != "terrain_scan"
   )
-  del cfg.observations["actor"].terms["height_scan"]
   del cfg.observations["critic"].terms["height_scan"]
 
   cfg.terminations.pop("out_of_terrain_bounds", None)

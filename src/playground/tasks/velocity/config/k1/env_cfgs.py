@@ -21,6 +21,7 @@ from playground.asset_zoo.robots.k1.k1_parallel_constants import (
   get_k1_parallel_robot_cfg,
 )
 
+from playground.tasks.velocity.mdp.observations import remove_non_deployable_actor_terms
 from playground.tasks.velocity.mdp.terminations import stochastic_bad_orientation
 from playground.tasks.velocity.mdp.terrain import randomize_terrain_contact
 
@@ -533,6 +534,7 @@ def make_velocity_env_cfg() -> ManagerBasedRlEnvCfg:
 def k1_rough_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
   """Create Booster K1 rough terrain velocity tracking configuration."""
   cfg = make_velocity_env_cfg()
+  remove_non_deployable_actor_terms(cfg)
 
   cfg.scene.entities = {"robot": get_k1_parallel_robot_cfg()}
 
@@ -785,11 +787,11 @@ def k1_flat_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
   cfg.scene.terrain.terrain_type = "plane"
   cfg.scene.terrain.terrain_generator = None
 
-  # Remove raycast sensor and height scan (no terrain to scan).
+  # Remove raycast sensor and the critic's height scan (no terrain to scan). The
+  # actor never sees it (see remove_non_deployable_actor_terms).
   cfg.scene.sensors = tuple(
     s for s in (cfg.scene.sensors or ()) if s.name != "terrain_scan"
   )
-  del cfg.observations["actor"].terms["height_scan"]
   del cfg.observations["critic"].terms["height_scan"]
 
   cfg.terminations.pop("out_of_terrain_bounds", None)

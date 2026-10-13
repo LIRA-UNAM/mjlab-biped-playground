@@ -5,6 +5,8 @@ from playground.asset_zoo.robots.booster_t1.t1_constants import (
   get_t1_robot_cfg,
 )
 
+from playground.tasks.velocity.mdp.observations import remove_non_deployable_actor_terms
+
 from mjlab.envs import ManagerBasedRlEnvCfg
 from mjlab.envs import mdp as envs_mdp
 from mjlab.envs.mdp.actions import JointPositionActionCfg
@@ -44,6 +46,7 @@ _T1_LEG_ACTION_SCALE = {
 def t1_rough_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
   """Create Booster T1 rough terrain velocity tracking configuration."""
   cfg = make_velocity_env_cfg()
+  remove_non_deployable_actor_terms(cfg)
 
   cfg.scene.entities = {"robot": get_t1_robot_cfg()}
 
@@ -202,11 +205,11 @@ def t1_flat_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
   cfg.scene.terrain.terrain_type = "plane"
   cfg.scene.terrain.terrain_generator = None
 
-  # Remove raycast sensor and height scan (no terrain to scan).
+  # Remove raycast sensor and the critic's height scan (no terrain to scan). The
+  # actor never sees it (see remove_non_deployable_actor_terms).
   cfg.scene.sensors = tuple(
     s for s in (cfg.scene.sensors or ()) if s.name != "terrain_scan"
   )
-  del cfg.observations["actor"].terms["height_scan"]
   del cfg.observations["critic"].terms["height_scan"]
 
   cfg.terminations.pop("out_of_terrain_bounds", None)
