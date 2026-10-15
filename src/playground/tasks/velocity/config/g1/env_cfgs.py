@@ -150,6 +150,29 @@ def g1_rough_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
   assert isinstance(twist_cmd, UniformVelocityCommandCfg)
   twist_cmd.viz.z_offset = 1.15
 
+  # Command curriculum. mjlab's default ranges (x up to 3 m/s, y fixed at +-1 m/s
+  # for the whole run) made the G1 walk far too fast. Yaw keeps mjlab's stages.
+  # Steps are env steps: PPO collects 24 per iteration, so the stages switch at
+  # iterations 5k and 10k (mjlab's default timing).
+  twist_cmd.ranges.lin_vel_x = (-0.5, 0.5)
+  twist_cmd.ranges.lin_vel_y = (-0.3, 0.3)
+  twist_cmd.ranges.ang_vel_z = (-0.5, 0.5)
+  cfg.curriculum["command_vel"].params["velocity_stages"] = [
+    {
+      "step": 0,
+      "lin_vel_x": (-0.5, 0.5),
+      "lin_vel_y": (-0.3, 0.3),
+      "ang_vel_z": (-0.5, 0.5),
+    },
+    {
+      "step": 5000 * 24,
+      "lin_vel_x": (-0.9, 0.9),
+      "lin_vel_y": (-0.5, 0.5),
+      "ang_vel_z": (-0.7, 0.7),
+    },
+    {"step": 10000 * 24, "lin_vel_x": (-1.5, 1.5), "lin_vel_y": (-0.7, 0.7)},
+  ]
+
   cfg.events["foot_friction"].params["asset_cfg"].geom_names = geom_names
   cfg.events["base_com"].params["asset_cfg"].body_names = ("torso_link",)
 
@@ -265,6 +288,10 @@ def g1_rough_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
     cfg.terminations.pop("out_of_terrain_bounds", None)
     cfg.terminations.pop("illegal_contact", None)
     cfg.curriculum = {}
+    # No curriculum in play: command the final training stage.
+    twist_cmd.ranges.lin_vel_x = (-1.5, 1.5)
+    twist_cmd.ranges.lin_vel_y = (-0.7, 0.7)
+    twist_cmd.ranges.ang_vel_z = (-0.7, 0.7)
     cfg.events["randomize_terrain"] = EventTermCfg(
       func=envs_mdp.randomize_terrain,
       mode="reset",
@@ -313,12 +340,6 @@ def g1_flat_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
   # worth ~0.15 per landing without making stepping itself expensive (the term
   # also counts the body-weight share of the touchdown force).
   cfg.rewards["soft_landing"].weight = -5e-4
-
-  if play:
-    twist_cmd = cfg.commands["twist"]
-    assert isinstance(twist_cmd, UniformVelocityCommandCfg)
-    twist_cmd.ranges.lin_vel_x = (-1.5, 2.0)
-    twist_cmd.ranges.ang_vel_z = (-0.7, 0.7)
 
   return cfg
 
