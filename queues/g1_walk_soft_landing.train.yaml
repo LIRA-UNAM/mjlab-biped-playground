@@ -1,0 +1,53 @@
+# G1 soft-landing sweep: Flat and Rough PPO-DA at three soft_landing weights.
+# Bracket around the Flat default (-5e-4): 10x, 50x and 100x mjlab's base -1e-5.
+# Flat runs use 2x the registered Flat PPO iterations (6k -> 12k); Rough keeps 30k.
+# All runs log to the separate W&B project g1_walk_soft_landing.
+# Run with: uv run train_queue queues/g1_walk_soft_landing.train.yaml
+#
+# Per-task extra_args replace (not extend) the defaults, so each entry carries its
+# full argument list. Weights use the --flag=value form with decimals: a bare
+# "-1e-4" would be parsed as a flag, not a negative number.
+
+defaults:
+  num_envs: 4096
+  extra_args: []
+
+stop_on_failure: false
+
+tasks:
+  # Flat PPO-DA, 12k iterations.
+  - task: Pumas-Velocity-Flat-Unitree-G1-PPO-DA
+    extra_args:
+      - "--env.rewards.soft-landing.weight=-0.0001"
+      - "--agent.max-iterations=12000"
+      - "--agent.wandb-project=g1_walk_soft_landing"
+      - "--agent.run-name=flat_da_sl1e-4"
+  - task: Pumas-Velocity-Flat-Unitree-G1-PPO-DA
+    extra_args:
+      - "--env.rewards.soft-landing.weight=-0.0005"
+      - "--agent.max-iterations=12000"
+      - "--agent.wandb-project=g1_walk_soft_landing"
+      - "--agent.run-name=flat_da_sl5e-4"
+  - task: Pumas-Velocity-Flat-Unitree-G1-PPO-DA
+    extra_args:
+      - "--env.rewards.soft-landing.weight=-0.001"
+      - "--agent.max-iterations=12000"
+      - "--agent.wandb-project=g1_walk_soft_landing"
+      - "--agent.run-name=flat_da_sl1e-3"
+
+  # Rough PPO-DA, registered 30k iterations.
+  - task: Pumas-Velocity-Rough-Unitree-G1-PPO-DA
+    extra_args:
+      - "--env.rewards.soft-landing.weight=-0.0001"
+      - "--agent.wandb-project=g1_walk_soft_landing"
+      - "--agent.run-name=rough_da_sl1e-4"
+  - task: Pumas-Velocity-Rough-Unitree-G1-PPO-DA
+    extra_args:
+      - "--env.rewards.soft-landing.weight=-0.0005"
+      - "--agent.wandb-project=g1_walk_soft_landing"
+      - "--agent.run-name=rough_da_sl5e-4"
+  - task: Pumas-Velocity-Rough-Unitree-G1-PPO-DA
+    extra_args:
+      - "--env.rewards.soft-landing.weight=-0.001"
+      - "--agent.wandb-project=g1_walk_soft_landing"
+      - "--agent.run-name=rough_da_sl1e-3"

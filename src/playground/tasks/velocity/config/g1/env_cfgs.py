@@ -307,6 +307,13 @@ def g1_flat_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
   # Disable terrain curriculum (not present in play mode since rough clears all).
   cfg.curriculum.pop("terrain_levels", None)
 
+  # Flat policies stomp harder than rough ones: nothing on a stiff, predictable
+  # plane punishes a hard touchdown. At the base -1e-5 the term is ~0.01 per
+  # landing on the 34 kg G1 (negligible); -5e-4 makes reducing impact force
+  # worth ~0.15 per landing without making stepping itself expensive (the term
+  # also counts the body-weight share of the touchdown force).
+  cfg.rewards["soft_landing"].weight = -5e-4
+
   if play:
     twist_cmd = cfg.commands["twist"]
     assert isinstance(twist_cmd, UniformVelocityCommandCfg)
