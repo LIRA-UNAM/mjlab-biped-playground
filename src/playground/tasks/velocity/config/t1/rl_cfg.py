@@ -18,8 +18,8 @@ def t1_ppo_runner_cfg() -> RslRlOnPolicyRunnerCfg:
   """Create RL runner configuration for Booster T1 velocity task."""
   return RslRlOnPolicyRunnerCfg(
     actor=RslRlModelCfg(
-      # Larger network than Asimov's: only legs are actuated, but
-      # observations still carry full-body (arms/waist/neck) proprioception.
+      # Larger network than Asimov's: legs, waist, and arms are actuated, and
+      # observations carry full-body (incl. neck) proprioception.
       hidden_dims=(512, 256, 128),
       activation="elu",
       obs_normalization=True,
@@ -52,7 +52,8 @@ def t1_ppo_runner_cfg() -> RslRlOnPolicyRunnerCfg:
     wandb_project="t1_velocity",
     save_interval=1_000,
     num_steps_per_env=24,
-    max_iterations=6_000,
+    # Command curriculum stages switch at iterations 5k and 10k (see env_cfgs).
+    max_iterations=15_000,
   )
 
 

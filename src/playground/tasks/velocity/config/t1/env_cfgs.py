@@ -25,10 +25,6 @@ from mjlab.tasks.velocity import mdp
 from mjlab.tasks.velocity.mdp import UniformVelocityCommandCfg
 from mjlab.tasks.velocity.velocity_env_cfg import make_velocity_env_cfg
 
-# Leg-only actuator/joint patterns. Waist, neck, and arm actuators are
-# intentionally excluded from the action space; they hold their
-# HOME_KEYFRAME default via the entity's own PD actuators, keeping the
-# upper body static and clear of the legs while walking.
 _LEG_JOINT_PATTERNS = (
   ".*_Hip_Pitch",
   ".*_Hip_Roll",
@@ -37,9 +33,21 @@ _LEG_JOINT_PATTERNS = (
   ".*_Ankle_Pitch",
   ".*_Ankle_Roll",
 )
+_UPPER_BODY_JOINT_PATTERNS = (
+  "Waist",
+  ".*_Shoulder_Pitch",
+  ".*_Shoulder_Roll",
+  ".*_Elbow_Pitch",
+  ".*_Elbow_Yaw",
+)
+# Every joint except the neck is actuated. The neck is intentionally excluded
+# from the action space; it holds its HOME_KEYFRAME default via the entity's
+# own PD actuator.
+_NECK_JOINT_NAMES = ("AAHead_yaw", "Head_pitch")
+_ACTUATED_JOINT_PATTERNS = _LEG_JOINT_PATTERNS + _UPPER_BODY_JOINT_PATTERNS
 
-_T1_LEG_ACTION_SCALE = {
-  k: v for k, v in T1_ACTION_SCALE.items() if k in _LEG_JOINT_PATTERNS
+_T1_ACTION_SCALE = {
+  k: v for k, v in T1_ACTION_SCALE.items() if k not in _NECK_JOINT_NAMES
 }
 
 
@@ -101,13 +109,12 @@ def t1_rough_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
   if cfg.scene.terrain is not None and cfg.scene.terrain.terrain_generator is not None:
     cfg.scene.terrain.terrain_generator.curriculum = True
 
-  # Restrict the action space to legs only. Waist/arm/neck actuators keep
-  # driving their own PD control toward the HOME_KEYFRAME default, holding
-  # the upper body static and out of the way of the legs.
+  # Actuate legs, waist, and arms. The neck actuators keep driving their own PD
+  # control toward the HOME_KEYFRAME default.
   joint_pos_action = cfg.actions["joint_pos"]
   assert isinstance(joint_pos_action, JointPositionActionCfg)
-  joint_pos_action.actuator_names = _LEG_JOINT_PATTERNS
-  joint_pos_action.scale = _T1_LEG_ACTION_SCALE
+  joint_pos_action.actuator_names = _ACTUATED_JOINT_PATTERNS
+  joint_pos_action.scale = _T1_ACTION_SCALE
 
   cfg.viewer.body_name = "Trunk"
 
@@ -115,40 +122,71 @@ def t1_rough_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
   assert isinstance(twist_cmd, UniformVelocityCommandCfg)
   twist_cmd.viz.z_offset = 1.2  # Approx. Trunk height above ground at HOME_KEYFRAME.
 
-  # Conservative velocity ranges given T1's narrow ankle-roll ROM
-  # (+-0.44 rad) and asymmetric hip-roll ROM.
-  twist_cmd.ranges.lin_vel_x = (-0.8, 0.8)
-  twist_cmd.ranges.lin_vel_y = (-0.5, 0.5)
-  twist_cmd.ranges.ang_vel_z = (-0.6, 0.6)
+  # Command curriculum, same as the G1 velocity task. mjlab's default ranges (x up
+  # to 3 m/s, y fixed at +-1 m/s for the whole run) are far too fast for the T1.
+  # Steps are env steps: PPO collects 24 per iteration, so the stages switch at
+  # iterations 5k and 10k (mjlab's default timing).
+  twist_cmd.ranges.lin_vel_x = (-0.5, 0.5)
+  twist_cmd.ranges.lin_vel_y = (-0.3, 0.3)
+  twist_cmd.ranges.ang_vel_z = (-0.5, 0.5)
+  cfg.curriculum["command_vel"].params["velocity_stages"] = [
+    {
+      "step": 0,
+      "lin_vel_x": (-0.5, 0.5),
+      "lin_vel_y": (-0.3, 0.3),
+      "ang_vel_z": (-0.5, 0.5),
+    },
+    {
+      "step": 5000 * 24,
+      "lin_vel_x": (-0.9, 0.9),
+      "lin_vel_y": (-0.5, 0.5),
+      "ang_vel_z": (-0.7, 0.7),
+    },
+    {"step": 10000 * 24, "lin_vel_x": (-1.5, 1.5), "lin_vel_y": (-0.7, 0.7)},
+  ]
 
   cfg.events["foot_friction"].params["asset_cfg"].geom_names = geom_names
   cfg.events["base_com"].params["asset_cfg"].body_names = ("Trunk",)
 
-  # Restrict the pose reward to leg joints only. This is required, not just
+  # Restrict the pose reward to the actuated joints. This is required, not just
   # stylistic: variable_posture builds its std tensors positionally aligned
   # to asset_cfg's resolved joint list, and every joint in that list must be
   # covered by a std dict key or the reward crashes with a shape mismatch.
-  # Since arms/waist/neck are not part of the action space, exclude them
-  # entirely from this reward.
+  # The neck is not part of the action space, so it is excluded from this
+  # reward. Waist/arm stds follow mjlab's upstream G1 config.
   cfg.rewards["pose"].params["asset_cfg"] = SceneEntityCfg(
-    "robot", joint_names=_LEG_JOINT_PATTERNS
+    "robot", joint_names=_ACTUATED_JOINT_PATTERNS
   )
   cfg.rewards["pose"].params["std_standing"] = {".*": 0.05}
   cfg.rewards["pose"].params["std_walking"] = {
+    # Lower body.
     r".*_Hip_Pitch": 0.3,
     r".*_Hip_Roll": 0.15,
     r".*_Hip_Yaw": 0.15,
     r".*_Knee_Pitch": 0.4,
     r".*_Ankle_Pitch": 0.15,
     r".*_Ankle_Roll": 0.1,
+    # Waist.
+    r"Waist": 0.2,
+    # Arms.
+    r".*_Shoulder_Pitch": 0.15,
+    r".*_Shoulder_Roll": 0.15,
+    r".*_Elbow_.*": 0.15,
   }
   cfg.rewards["pose"].params["std_running"] = {
+    # Lower body.
     r".*_Hip_Pitch": 0.5,
     r".*_Hip_Roll": 0.2,
     r".*_Hip_Yaw": 0.2,
     r".*_Knee_Pitch": 0.6,
     r".*_Ankle_Pitch": 0.2,
     r".*_Ankle_Roll": 0.12,
+    # Waist.
+    r"Waist": 0.3,
+    # Arms.
+    r".*_Shoulder_Pitch": 0.5,
+    r".*_Shoulder_Roll": 0.2,
+    r".*_Elbow_.*": 0.35,
   }
 
   cfg.rewards["upright"].params["asset_cfg"].body_names = ("Trunk",)
@@ -180,6 +218,10 @@ def t1_rough_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
     cfg.events.pop("push_robot", None)
     cfg.terminations.pop("out_of_terrain_bounds", None)
     cfg.curriculum = {}
+    # No curriculum in play: command the final training stage.
+    twist_cmd.ranges.lin_vel_x = (-1.5, 1.5)
+    twist_cmd.ranges.lin_vel_y = (-0.7, 0.7)
+    twist_cmd.ranges.ang_vel_z = (-0.7, 0.7)
     cfg.events["randomize_terrain"] = EventTermCfg(
       func=envs_mdp.randomize_terrain,
       mode="reset",
@@ -216,12 +258,6 @@ def t1_flat_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
 
   # Disable terrain curriculum (not present in play mode since rough clears all).
   cfg.curriculum.pop("terrain_levels", None)
-
-  if play:
-    twist_cmd = cfg.commands["twist"]
-    assert isinstance(twist_cmd, UniformVelocityCommandCfg)
-    twist_cmd.ranges.lin_vel_x = (-1.0, 1.2)
-    twist_cmd.ranges.ang_vel_z = (-0.7, 0.7)
 
   return cfg
 
