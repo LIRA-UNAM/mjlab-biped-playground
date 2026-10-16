@@ -6,6 +6,12 @@ from mjlab.rl import (
   RslRlPpoAlgorithmCfg,
 )
 
+from playground.rl.config import (
+  RslRlSymmetryCfg,
+)
+from playground.rl.config import (
+  RslRlPpoAlgorithmCfg as RslRlSymPpoAlgorithmCfg,
+)
 from playground.rl.flashsac import (
   RslRlFlashSacActorCfg,
   RslRlFlashSacAlgorithmCfg,
@@ -13,9 +19,43 @@ from playground.rl.flashsac import (
   RslRlFlashSacRunnerCfg,
 )
 
+# Left/right mirror used for data augmentation (see symmetry.py). Referenced by
+# its "module:function" path so the runner config stays serializable.
+_SYMMETRY_FUNC = "playground.tasks.velocity.config.t1.symmetry:augment_symmetries"
 
-def t1_ppo_runner_cfg() -> RslRlOnPolicyRunnerCfg:
-  """Create RL runner configuration for Booster T1 velocity task."""
+
+def t1_ppo_runner_cfg(symmetry: bool = False) -> RslRlOnPolicyRunnerCfg:
+  """Create RL runner configuration for Booster T1 velocity task.
+
+  Args:
+    symmetry: Augment every PPO mini-batch with its left/right mirror.
+  """
+  algorithm_kwargs: dict = dict(
+    value_loss_coef=1.0,
+    use_clipped_value_loss=True,
+    clip_param=0.2,
+    entropy_coef=0.01,
+    num_learning_epochs=5,
+    num_mini_batches=4,
+    learning_rate=1.0e-3,
+    schedule="adaptive",
+    gamma=0.99,
+    lam=0.95,
+    desired_kl=0.01,
+    max_grad_norm=1.0,
+  )
+  if symmetry:
+    algorithm_kwargs["symmetry_cfg"] = RslRlSymmetryCfg(
+      use_data_augmentation=True,
+      data_augmentation_func=_SYMMETRY_FUNC,
+    )
+  if symmetry:
+    algorithm = RslRlSymPpoAlgorithmCfg(**algorithm_kwargs)
+  else:
+    algorithm = RslRlPpoAlgorithmCfg(**algorithm_kwargs)
+
+  experiment_name = "t1_velocity_da" if symmetry else "t1_velocity"
+
   return RslRlOnPolicyRunnerCfg(
     actor=RslRlModelCfg(
       # Larger network than Asimov's: legs, waist, and arms are actuated, and
@@ -34,21 +74,8 @@ def t1_ppo_runner_cfg() -> RslRlOnPolicyRunnerCfg:
       activation="elu",
       obs_normalization=True,
     ),
-    algorithm=RslRlPpoAlgorithmCfg(
-      value_loss_coef=1.0,
-      use_clipped_value_loss=True,
-      clip_param=0.2,
-      entropy_coef=0.01,
-      num_learning_epochs=5,
-      num_mini_batches=4,
-      learning_rate=1.0e-3,
-      schedule="adaptive",
-      gamma=0.99,
-      lam=0.95,
-      desired_kl=0.01,
-      max_grad_norm=1.0,
-    ),
-    experiment_name="t1_velocity",
+    algorithm=algorithm,
+    experiment_name=experiment_name,
     wandb_project="t1_velocity",
     save_interval=1_000,
     num_steps_per_env=24,
@@ -57,8 +84,12 @@ def t1_ppo_runner_cfg() -> RslRlOnPolicyRunnerCfg:
   )
 
 
-def t1_flashsac_runner_cfg() -> RslRlFlashSacRunnerCfg:
-  """Create FlashSAC (off-policy) RL runner configuration for Booster T1 velocity task."""
+def t1_flashsac_runner_cfg(symmetry: bool = False) -> RslRlFlashSacRunnerCfg:
+  """Create FlashSAC (off-policy) RL runner configuration for Booster T1 velocity task.
+
+  Args:
+    symmetry: Augment every replay mini-batch with its left/right mirror.
+  """
   return RslRlFlashSacRunnerCfg(
     actor=RslRlFlashSacActorCfg(
       num_blocks=2,
@@ -85,8 +116,17 @@ def t1_flashsac_runner_cfg() -> RslRlFlashSacRunnerCfg:
       # in-place oscillations that satisfy yaw tracking but not full
       # forward/lateral strides. Raised further to sustain exploration longer.
       temp_target_sigma=0.15,
+      symmetry_cfg=(
+        {
+          "data_augmentation_func": _SYMMETRY_FUNC,
+          "use_data_augmentation": True,
+          "use_mirror_loss": False,
+        }
+        if symmetry
+        else None
+      ),
     ),
-    experiment_name="t1_velocity_flashsac",
+    experiment_name="t1_velocity_flashsac_da" if symmetry else "t1_velocity_flashsac",
     wandb_project="t1_velocity",
     save_interval=1_000,
     num_steps_per_env=1,

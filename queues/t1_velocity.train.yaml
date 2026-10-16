@@ -10,9 +10,17 @@ stop_on_failure: false
 tasks:
   - task: Pumas-Velocity-Flat-Booster-T1-PPO
     num_envs: 4096
+  - task: Pumas-Velocity-Flat-Booster-T1-PPO-DA
+    num_envs: 4096
   - task: Pumas-Velocity-Flat-Booster-T1-FlashSAC
+    num_envs: 4096
+  - task: Pumas-Velocity-Flat-Booster-T1-FlashSAC-DA
     num_envs: 4096
   - task: Pumas-Velocity-Rough-Booster-T1-PPO
     num_envs: 4096
+  - task: Pumas-Velocity-Rough-Booster-T1-PPO-DA
+    num_envs: 4096
   - task: Pumas-Velocity-Rough-Booster-T1-FlashSAC
+    num_envs: 4096
+  - task: Pumas-Velocity-Rough-Booster-T1-FlashSAC-DA
     num_envs: 4096

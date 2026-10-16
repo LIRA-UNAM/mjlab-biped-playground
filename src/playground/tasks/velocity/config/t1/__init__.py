@@ -37,3 +37,28 @@ register_mjlab_task(
   rl_cfg=t1_flashsac_runner_cfg(),
   runner_cls=VelocityOffPolicyRunner,
 )
+
+# Opt-in variants. DA = left/right mirror data augmentation.
+for _terrain, _env_cfg in (
+  ("Rough", t1_rough_env_cfg),
+  ("Flat", t1_flat_env_cfg),
+):
+  register_mjlab_task(
+    task_id=f"Pumas-Velocity-{_terrain}-Booster-T1-PPO-DA",
+    env_cfg=_env_cfg(),
+    play_env_cfg=_env_cfg(play=True),
+    rl_cfg=t1_ppo_runner_cfg(symmetry=True),
+    runner_cls=VelocityOnPolicyRunner,
+  )
+
+for _terrain, _env_cfg in (
+  ("Rough", t1_rough_env_cfg_flashsac),
+  ("Flat", t1_flat_env_cfg_flashsac),
+):
+  register_mjlab_task(
+    task_id=f"Pumas-Velocity-{_terrain}-Booster-T1-FlashSAC-DA",
+    env_cfg=_env_cfg(),
+    play_env_cfg=_env_cfg(play=True),
+    rl_cfg=t1_flashsac_runner_cfg(symmetry=True),
+    runner_cls=VelocityOffPolicyRunner,
+  )
