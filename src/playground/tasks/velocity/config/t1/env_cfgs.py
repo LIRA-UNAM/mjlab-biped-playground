@@ -1,15 +1,20 @@
 """Booster T1 velocity tracking environment configurations."""
 
+from dataclasses import replace
+
 from playground.asset_zoo.robots.booster_t1.t1_constants import (
   T1_ACTION_SCALE,
   get_t1_robot_cfg,
 )
 
+from playground.tasks.velocity.mdp.actuators import pd_gains_by_target
 from playground.tasks.velocity.mdp.observations import remove_non_deployable_actor_terms
 
+from mjlab.entity import EntityCfg
 from mjlab.envs import ManagerBasedRlEnvCfg
 from mjlab.envs import mdp as envs_mdp
 from mjlab.envs.mdp.actions import JointPositionActionCfg
+from mjlab.managers.curriculum_manager import CurriculumTermCfg
 from mjlab.managers.event_manager import EventTermCfg
 from mjlab.managers.reward_manager import RewardTermCfg
 from mjlab.managers.scene_entity_config import SceneEntityCfg
@@ -50,13 +55,33 @@ _T1_ACTION_SCALE = {
   k: v for k, v in T1_ACTION_SCALE.items() if k not in _NECK_JOINT_NAMES
 }
 
+# Command latency between policy and motors (bus/communication), in physics steps
+# of 5 ms: 10-40 ms. Same values as k1_constants.ACTUATOR_DELAY.
+_ACTUATOR_DELAY = dict(delay_min_lag=2, delay_max_lag=8, delay_hold_prob=0.3)
+
+_ANKLE_TARGETS = (".*_Ankle_.*",)
+_NON_ANKLE_TARGETS = (r"(?!.*_Ankle_).*",)
+
+
+def _t1_robot_cfg_with_delay() -> EntityCfg:
+  """T1 robot cfg with actuator delay on every group (velocity task only)."""
+  robot_cfg = get_t1_robot_cfg()
+  assert robot_cfg.articulation is not None
+  robot_cfg.articulation = replace(
+    robot_cfg.articulation,
+    actuators=tuple(
+      replace(a, **_ACTUATOR_DELAY) for a in robot_cfg.articulation.actuators
+    ),
+  )
+  return robot_cfg
+
 
 def t1_rough_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
   """Create Booster T1 rough terrain velocity tracking configuration."""
   cfg = make_velocity_env_cfg()
   remove_non_deployable_actor_terms(cfg)
 
-  cfg.scene.entities = {"robot": get_t1_robot_cfg()}
+  cfg.scene.entities = {"robot": _t1_robot_cfg_with_delay()}
 
   # Set raycast sensor frame to T1 trunk.
   for sensor in cfg.scene.sensors or ():
@@ -147,6 +172,56 @@ def t1_rough_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
 
   cfg.events["foot_friction"].params["asset_cfg"].geom_names = geom_names
   cfg.events["base_com"].params["asset_cfg"].body_names = ("Trunk",)
+
+  # Sim2real actuator randomization. The real ankle is a parallel linkage driven
+  # by two motors through a serial->parallel conversion, so its effective
+  # joint-space PD gains vary with configuration and its reflected inertia is
+  # larger than the single-motor value modeled here. The ankle therefore gets a
+  # wider gain range than the other joints (+-20%, as in K1/G1) plus an armature
+  # scale (K1 doubles ankle armature). Gains are sampled per joint.
+  cfg.events["pd_gains"] = EventTermCfg(
+    mode="startup",
+    func=pd_gains_by_target,
+    params={
+      "target_names_expr": _NON_ANKLE_TARGETS,
+      "kp_range": (0.8, 1.2),
+      "kd_range": (0.8, 1.2),
+    },
+  )
+  cfg.events["ankle_pd_gains"] = EventTermCfg(
+    mode="startup",
+    func=pd_gains_by_target,
+    params={
+      "target_names_expr": _ANKLE_TARGETS,
+      "kp_range": (0.6, 1.4),
+      "kd_range": (0.5, 1.5),
+    },
+  )
+  cfg.events["ankle_armature"] = EventTermCfg(
+    mode="startup",
+    func=envs_mdp.dr.joint_armature,
+    params={
+      "asset_cfg": SceneEntityCfg("robot", joint_names=_ANKLE_TARGETS),
+      "operation": "scale",
+      "ranges": (1.0, 2.5),
+    },
+  )
+
+  # Ramp up the action-rate penalty once a gait has emerged, reaching full
+  # strength when the first command stage widens (iteration 5k). Penalizes the
+  # step-to-step action changes behind hardware jitter (cf. CAPS, Mysore et al.
+  # 2021, arXiv:2012.06644).
+  cfg.curriculum["action_rate_weight"] = CurriculumTermCfg(
+    func=envs_mdp.reward_curriculum,
+    params={
+      "reward_name": "action_rate_l2",
+      "stages": [
+        {"step": 0, "weight": -0.1},
+        {"step": 2500 * 24, "weight": -0.25},
+        {"step": 5000 * 24, "weight": -0.5},
+      ],
+    },
+  )
 
   # Restrict the pose reward to the actuated joints. This is required, not just
   # stylistic: variable_posture builds its std tensors positionally aligned
