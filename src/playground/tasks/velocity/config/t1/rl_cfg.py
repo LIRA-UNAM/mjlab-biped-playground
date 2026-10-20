@@ -77,7 +77,7 @@ def t1_ppo_runner_cfg(symmetry: bool = False) -> RslRlOnPolicyRunnerCfg:
     algorithm=algorithm,
     experiment_name=experiment_name,
     wandb_project="t1_velocity",
-    save_interval=1_000,
+    save_interval=2_000,
     num_steps_per_env=24,
     # Command curriculum stages switch at iterations 5k and 10k (see env_cfgs).
     max_iterations=15_000,
@@ -128,7 +128,7 @@ def t1_flashsac_runner_cfg(symmetry: bool = False) -> RslRlFlashSacRunnerCfg:
     ),
     experiment_name="t1_velocity_flashsac_da" if symmetry else "t1_velocity_flashsac",
     wandb_project="t1_velocity",
-    save_interval=1_000,
+    save_interval=2_000,
     num_steps_per_env=1,
-    max_iterations=6_000,
+    max_iterations=15_000,
   )
