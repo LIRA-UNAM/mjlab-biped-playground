@@ -171,13 +171,13 @@ def _linkage_pose(
 # ankle pitch -0.35 (rod roll stays 0 for a symmetric pose).
 _HOME_LINKAGE = _linkage_pose(-0.327708, 0.394469, -0.328636, 0.35804)
 
-# Slightly crouched stance with both arms pitched 90 degrees forward (negative
-# about +Y) so they stay clear of the torso and hip housings.
+# Slightly crouched stance. The upper arms hang down and both elbows bend 90
+# degrees forward (negative about +Y), clear of the torso and hip housings.
 HOME_KEYFRAME = EntityCfg.InitialStateCfg(
   pos=(0, 0, 0.66),
   joint_pos={
-    "left_shoulder_pitch": -math.pi / 2,
-    "right_shoulder_pitch": -math.pi / 2,
+    "left_elbow_pitch": -math.pi / 2,
+    "right_elbow_pitch": -math.pi / 2,
     "left_hip_pitch": -0.35,
     "left_knee_pitch": 0.7,
     "left_ankle_pitch": -0.35,
