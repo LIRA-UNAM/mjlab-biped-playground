@@ -34,3 +34,9 @@ from playground.asset_zoo.robots.unitree_g1.g1_constants import (
 from playground.asset_zoo.robots.unitree_g1.g1_constants import (
   get_g1_robot_cfg as get_g1_robot_cfg,
 )
+from playground.asset_zoo.robots.roomie.roomie_constants import (
+  ROOMIE_ACTION_SCALE as ROOMIE_ACTION_SCALE,
+)
+from playground.asset_zoo.robots.roomie.roomie_constants import (
+  get_roomie_robot_cfg as get_roomie_robot_cfg,
+)

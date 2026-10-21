@@ -1,0 +1,18 @@
+# All Roomie V3 velocity tasks.
+# Run with: uv run train_queue queues/roomie_velocity.train.yaml
+
+defaults:
+  num_envs: 4096
+  extra_args: []
+
+stop_on_failure: false
+
+tasks:
+  - task: Pumas-Velocity-Flat-Roomie-V3-PPO
+    num_envs: 4096
+  - task: Pumas-Velocity-Flat-Roomie-V3-PPO-DA
+    num_envs: 4096
+  - task: Pumas-Velocity-Rough-Roomie-V3-PPO
+    num_envs: 4096
+  - task: Pumas-Velocity-Rough-Roomie-V3-PPO-DA
+    num_envs: 4096
