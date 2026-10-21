@@ -125,7 +125,8 @@ def roomie_rough_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
     num_slots=1,
     track_air_time=True,
   )
-  # Only reports contacts when the robot is built with self_collision=True.
+  # Robot self-contact: only left-leg vs right-leg proxies can touch (see
+  # LEG_SELF_COLLISION).
   self_collision_cfg = ContactSensorCfg(
     name="self_collision",
     primary=ContactMatch(mode="subtree", pattern=_TRUNK, entity="robot"),

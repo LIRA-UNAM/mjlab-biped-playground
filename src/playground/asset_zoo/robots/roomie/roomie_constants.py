@@ -40,24 +40,36 @@ assert ROOMIE_XML.exists()
 # Ground-contact proxies of every link, the foot soles and the forearm profiles.
 _CONTACT_GEOMS = r"^(.*_ground_proxy|.*_foot_contact|.*_forearm_profile_wall_.*)$"
 
+# Leg proxies (hip pitch link down to the foot, including cranks and rods).
+_LEFT_LEG_GEOMS = r"^left_(hip|knee|ankle|near|far|foot)_"
+_RIGHT_LEG_GEOMS = r"^right_(hip|knee|ankle|near|far|foot)_"
 
-def _load_spec(self_collision: bool) -> mujoco.MjSpec:
+# The two hip-pitch housings overlap in every pose by construction; exclude them
+# so leg self-collision only reports real contacts (crossed legs, knees, feet).
+_PROXY_SELF_EXCLUDES: tuple[tuple[str, str], ...] = (
+  ("left_hip_pitch_link", "right_hip_pitch_link"),
+)
+
+
+def _load_spec(cad_self_collision: bool) -> mujoco.MjSpec:
   spec = mujoco.MjSpec.from_file(str(ROOMIE_XML))
 
   for geom in list(spec.geoms):
     if not geom.name.startswith("self_collision_"):
       continue
-    if self_collision:
+    if cad_self_collision:
       # Convex CAD pieces keep their XML masks: they only collide with each
       # other, never with the terrain.
       geom.group = 3
     else:
       # 2000+ convex pieces are too expensive for batched RL; drop them.
       spec.delete(geom)
-  if not self_collision:
+  if not cad_self_collision:
     for mesh in list(spec.meshes):
       if mesh.name.startswith("self_collision_"):
         spec.delete(mesh)
+    for body1, body2 in _PROXY_SELF_EXCLUDES:
+      spec.add_exclude(bodyname1=body1, bodyname2=body2)
 
   # Keep all robot collision geoms in the collision visualization group.
   for geom in spec.geoms:
@@ -68,13 +80,13 @@ def _load_spec(self_collision: bool) -> mujoco.MjSpec:
 
 
 def get_spec() -> mujoco.MjSpec:
-  """Roomie spec without self-collision pieces (terrain contact only)."""
-  return _load_spec(self_collision=False)
+  """Roomie spec using the link proxies for terrain and leg-vs-leg contact."""
+  return _load_spec(cad_self_collision=False)
 
 
-def get_spec_with_self_collision() -> mujoco.MjSpec:
-  """Roomie spec keeping the convex CAD self-collision pieces."""
-  return _load_spec(self_collision=True)
+def get_spec_with_cad_self_collision() -> mujoco.MjSpec:
+  """Roomie spec keeping the convex CAD self-collision pieces (expensive)."""
+  return _load_spec(cad_self_collision=True)
 
 
 ##
@@ -194,10 +206,24 @@ HOME_KEYFRAME = EntityCfg.InitialStateCfg(
 # Collision config.
 ##
 
-# The proxy boxes were sized for ground contact and overlap each other (e.g.
-# the two hip-pitch housings, rods inside the shank hulls), so they only touch
-# the terrain. Equal priority with the terrain, so contact compliance mixes with
-# the (randomized) terrain solref/solimp.
+# Pair with get_spec(). Every proxy touches the terrain (contype/conaffinity bit
+# 1); the only self-contact is left leg vs right leg (bits 2 and 4). Contacts
+# within one leg and with the torso or arms are disabled. Equal priority with
+# the terrain, so contact compliance mixes with the (randomized) terrain
+# solref/solimp.
+LEG_SELF_COLLISION = CollisionCfg(
+  geom_names_expr=(_CONTACT_GEOMS,),
+  contype={_LEFT_LEG_GEOMS: 2, _RIGHT_LEG_GEOMS: 4, ".*": 0},
+  conaffinity={_LEFT_LEG_GEOMS: 1 | 4, _RIGHT_LEG_GEOMS: 1 | 2, ".*": 1},
+  solref=(0.01, 1),
+  condim={r"^(left|right)_foot_contact$": 3, ".*": 1},
+  priority=0,
+  solmix=0.001,
+  friction={r"^(left|right)_foot_contact$": (1.0,), ".*": (0.45,)},
+)
+
+# Proxies touch the terrain only. Used with the CAD self-collision pieces, which
+# then handle self-contact on their own.
 TERRAIN_COLLISION = CollisionCfg(
   geom_names_expr=(_CONTACT_GEOMS,),
   contype=0,
@@ -375,8 +401,8 @@ ROOMIE_ACTION_SCALE = _build_action_scale(ROOMIE_ARTICULATION)
 
 def get_roomie_robot_cfg(
   default_keyframe: EntityCfg.InitialStateCfg = HOME_KEYFRAME,
-  default_collisions: tuple[CollisionCfg, ...] = (TERRAIN_COLLISION,),
-  self_collision: bool = False,
+  default_collisions: tuple[CollisionCfg, ...] | None = None,
+  cad_self_collision: bool = False,
 ) -> EntityCfg:
   """Get a fresh Roomie robot configuration instance.
 
@@ -385,13 +411,19 @@ def get_roomie_robot_cfg(
 
   Args:
     default_keyframe: Initial state keyframe to seed each environment.
-    default_collisions: Collision config tuple.
-    self_collision: Keep the convex CAD self-collision pieces (expensive).
+    default_collisions: Collision config tuple. Defaults to LEG_SELF_COLLISION,
+      or TERRAIN_COLLISION when the CAD self-collision pieces are used.
+    cad_self_collision: Use the convex CAD self-collision pieces (expensive)
+      instead of proxy self-collision.
   """
+  if default_collisions is None:
+    default_collisions = (
+      (TERRAIN_COLLISION,) if cad_self_collision else (LEG_SELF_COLLISION,)
+    )
   return EntityCfg(
     init_state=default_keyframe,
     collisions=default_collisions,
-    spec_fn=get_spec_with_self_collision if self_collision else get_spec,
+    spec_fn=get_spec_with_cad_self_collision if cad_self_collision else get_spec,
     articulation=ROOMIE_ARTICULATION,
   )
 
