@@ -42,7 +42,7 @@ explicit = true
 
 # The nightly index (py.mujoco.org) only has dev builds.
 [tool.uv]
-override-dependencies = ["mujoco>=3.11.0.dev0"]
+override-dependencies = ["mujoco>=3.11.0"]
 
 [tool.ruff]
 indent-width = 2
