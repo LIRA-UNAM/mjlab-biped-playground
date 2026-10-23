@@ -408,6 +408,9 @@ ROOMIE_ACTION_SCALE = _build_action_scale(ROOMIE_NOMINAL_ARTICULATION)
 # from a measured response, the rest family estimates from the firmware gains in
 # steadywin_gains.yaml): kp (N m/rad), kv (N m s/rad), ki (N m/(rad s)).
 # Each ankle crank is driven by its own GIM6010-36 (one motor's armature).
+# The torque limit follows the datasheet torque-speed curve of ACTUATOR_GIM8108 /
+# ACTUATOR_GIM6010 (full peak up to the knee speed, linear to 0 at no-load): at
+# the 50 rpm speed cap about 70 N m (GIM8108) and 39 N m (GIM6010) remain.
 CASCADE_VELOCITY_LIMIT = 50.0 * _RPM_TO_RAD_S
 
 
@@ -424,6 +427,8 @@ def _cascade_cfg(
     integral_gain=ki,
     velocity_limit=CASCADE_VELOCITY_LIMIT,
     velocity_reference_timeconstant=velocity_reference_timeconstant,
+    no_load_velocity=motor.velocity_limit,
+    knee_point_velocity=motor.effective_knee_point_velocity,
     **ACTUATOR_DELAY,
   )
 

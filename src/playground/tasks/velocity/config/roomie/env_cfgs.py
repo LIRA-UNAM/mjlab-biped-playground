@@ -17,7 +17,10 @@ from playground.asset_zoo.robots.roomie.roomie_constants import (
   get_roomie_robot_cfg,
 )
 
-from playground.tasks.velocity.mdp.events import hold_default_joint_targets
+from playground.tasks.velocity.mdp.events import (
+  hold_default_joint_targets,
+  randomize_steadywin_cascade,
+)
 from playground.tasks.velocity.mdp.observations import remove_non_deployable_actor_terms
 from playground.tasks.velocity.mdp.terminations import stochastic_bad_orientation
 from playground.tasks.velocity.mdp.terrain import randomize_terrain_contact
@@ -228,6 +231,28 @@ def roomie_rough_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
       "kd_range": (0.8, 1.2),
     },
   )
+  # Driver torque limits (the real current limits are unknown): scaled down to
+  # 70 % of the datasheet peaks; the torque-speed curve scales with them.
+  cfg.events["effort_limits"] = EventTermCfg(
+    mode="reset",
+    func=envs_mdp.dr.effort_limits,
+    params={
+      "asset_cfg": SceneEntityCfg("robot", actuator_names=".*"),
+      "operation": "scale",
+      "effort_limit_range": (0.7, 1.0),
+    },
+  )
+  # Cascade integral gain (estimated from the firmware gains) and gearbox
+  # backlash, capped at the datasheet 15 arcmin of the GIM8108-36 / GIM6010-36.
+  cfg.events["cascade_terms"] = EventTermCfg(
+    mode="reset",
+    func=randomize_steadywin_cascade,
+    params={
+      "asset_cfg": SceneEntityCfg("robot"),
+      "integral_gain_range": (0.5, 1.5),
+      "backlash_range": (0.0, math.radians(15.0 / 60.0)),
+    },
+  )
   cfg.events["trunk_inertia"] = EventTermCfg(
     mode="startup",
     func=envs_mdp.dr.pseudo_inertia,
@@ -329,6 +354,8 @@ def roomie_rough_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
     cfg.observations["actor"].enable_corruption = False
     cfg.events.pop("push_robot", None)
     cfg.events.pop("pd_gains", None)
+    cfg.events.pop("effort_limits", None)
+    cfg.events.pop("cascade_terms", None)
     cfg.terminations.pop("out_of_terrain_bounds", None)
     cfg.terminations.pop("illegal_contact", None)
     cfg.curriculum = {}
