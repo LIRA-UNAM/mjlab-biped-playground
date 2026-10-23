@@ -68,9 +68,11 @@ dev = [
 
 [project.scripts]
 train = "mjlab.scripts.train:main"
-play = "playground.scripts.play:main"
+play = "mjlab.scripts.play:main"
+viser = "playground.scripts.play:main"
 list_envs = "mjlab.scripts.list_envs:main"
 train_queue = "playground.scripts.train_queue:main"
+export_onnx = "playground.scripts.export_onnx:main"
 
 [project.entry-points."mjlab.tasks"]
 playground = "playground"

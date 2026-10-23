@@ -26,6 +26,7 @@ from playground.asset_zoo.robots.k1.actuators import (
   ActuatorConfig,
   MotorPositionActuatorCfg,
 )
+from playground.asset_zoo.robots.roomie.actuators import SteadywinCascadeActuatorCfg
 
 if TYPE_CHECKING:
   import torch
@@ -370,11 +371,12 @@ def _actuator_cfg(
   )
 
 
+# Nominal per-motor PD (datasheet armature, 10 Hz / damping ratio 2). It is no
+# longer what the simulation applies; it only defines the joint position action
+# scale (0.25 * effort_limit / stiffness), which the deployed policy nodes use.
 ROOMIE_ACTUATOR_GIM8108 = _actuator_cfg(
   ("waist_yaw", ".*_hip_pitch", ".*_hip_roll", ".*_knee_pitch"), ACTUATOR_GIM8108
 )
-# Each ankle crank is driven by its own GIM6010-36, so the crank joints get one
-# motor's armature (no doubling as for a serial ankle joint).
 ROOMIE_ACTUATOR_GIM6010 = _actuator_cfg(
   (
     ".*_hip_yaw",
@@ -385,9 +387,7 @@ ROOMIE_ACTUATOR_GIM6010 = _actuator_cfg(
   ),
   ACTUATOR_GIM6010,
 )
-
-
-ROOMIE_ARTICULATION = EntityArticulationInfoCfg(
+ROOMIE_NOMINAL_ARTICULATION = EntityArticulationInfoCfg(
   actuators=(
     ROOMIE_ACTUATOR_GIM8108,
     ROOMIE_ACTUATOR_GIM6010,
@@ -395,8 +395,70 @@ ROOMIE_ARTICULATION = EntityArticulationInfoCfg(
   soft_joint_pos_limit_factor=0.9,
 )
 
+ROOMIE_ACTION_SCALE = _build_action_scale(ROOMIE_NOMINAL_ARTICULATION)
 
-ROOMIE_ACTION_SCALE = _build_action_scale(ROOMIE_ARTICULATION)
+
+##
+# Driver cascade (what the simulation applies).
+##
+# The real drivers run a position loop (P or PI) -> speed command capped at
+# roomie_position_control_node's position_max_speed_rpm (50 rpm) -> speed loop,
+# not a PD torque law (see actuators.py). Torque-equivalent gains per joint role
+# from the Roomie V3 model_config.json profile full_body (left_hip_pitch fitted
+# from a measured response, the rest family estimates from the firmware gains in
+# steadywin_gains.yaml): kp (N m/rad), kv (N m s/rad), ki (N m/(rad s)).
+# Each ankle crank is driven by its own GIM6010-36 (one motor's armature).
+CASCADE_VELOCITY_LIMIT = 50.0 * _RPM_TO_RAD_S
+
+
+def _cascade_cfg(
+  target_names_expr: tuple[str, ...], motor: ActuatorConfig, kp: float, kv: float,
+  ki: float = 0.0, velocity_reference_timeconstant: float = 0.0,
+) -> SteadywinCascadeActuatorCfg:
+  return SteadywinCascadeActuatorCfg(
+    target_names_expr=target_names_expr,
+    effort_limit=motor.effort_limit,
+    armature=motor.armature,
+    stiffness=kp,
+    damping=kv,
+    integral_gain=ki,
+    velocity_limit=CASCADE_VELOCITY_LIMIT,
+    velocity_reference_timeconstant=velocity_reference_timeconstant,
+    **ACTUATOR_DELAY,
+  )
+
+
+# GIM8108-36 (speed loop kv 16): firmware position_kp 1 / 6 (+ki) / 10 / 4 (+ki).
+ROOMIE_CASCADE_WAIST = _cascade_cfg(("waist_yaw",), ACTUATOR_GIM8108, kp=53.33, kv=16.0)
+ROOMIE_CASCADE_HIP_PITCH = _cascade_cfg(
+  (".*_hip_pitch",), ACTUATOR_GIM8108, kp=320.0, kv=16.0, ki=200.0)
+ROOMIE_CASCADE_HIP_ROLL = _cascade_cfg((".*_hip_roll",), ACTUATOR_GIM8108, kp=533.3, kv=16.0)
+ROOMIE_CASCADE_KNEE = _cascade_cfg(
+  (".*_knee_pitch",), ACTUATOR_GIM8108, kp=213.3, kv=16.0, ki=200.0)
+# GIM6010-36 (speed loop kv 5.178): firmware position_kp 5 / 10 (+ki) / 1.
+ROOMIE_CASCADE_HIP_YAW = _cascade_cfg((".*_hip_yaw",), ACTUATOR_GIM6010, kp=279.8, kv=5.178)
+ROOMIE_CASCADE_ANKLE = _cascade_cfg(
+  (".*_ankle_near_motor", ".*_ankle_far_motor"), ACTUATOR_GIM6010,
+  kp=559.6, kv=5.178, ki=209.9)
+ROOMIE_CASCADE_SHOULDER = _cascade_cfg(
+  (".*_shoulder_.*",), ACTUATOR_GIM6010, kp=55.96, kv=5.178)
+ROOMIE_CASCADE_ELBOW = _cascade_cfg(
+  (".*_elbow_.*",), ACTUATOR_GIM6010, kp=55.36, kv=5.178,
+  velocity_reference_timeconstant=0.02)
+
+ROOMIE_ARTICULATION = EntityArticulationInfoCfg(
+  actuators=(
+    ROOMIE_CASCADE_WAIST,
+    ROOMIE_CASCADE_HIP_PITCH,
+    ROOMIE_CASCADE_HIP_ROLL,
+    ROOMIE_CASCADE_KNEE,
+    ROOMIE_CASCADE_HIP_YAW,
+    ROOMIE_CASCADE_ANKLE,
+    ROOMIE_CASCADE_SHOULDER,
+    ROOMIE_CASCADE_ELBOW,
+  ),
+  soft_joint_pos_limit_factor=0.9,
+)
 
 
 def get_roomie_robot_cfg(
