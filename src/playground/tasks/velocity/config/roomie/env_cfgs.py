@@ -279,8 +279,8 @@ def roomie_rough_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
     r".*_hip_roll": 0.15,
     r".*_hip_yaw": 0.15,
     r".*_knee_pitch": 0.4,
-    r".*_ankle_pitch": 0.15,
-    r".*_ankle_roll": 0.1,
+    r".*_ankle_pitch": 0.2,
+    r".*_ankle_roll": 0.5,
   }
   cfg.rewards["pose"].params["std_running"] = {
     r"waist_yaw": 0.15,
@@ -289,7 +289,7 @@ def roomie_rough_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
     r".*_hip_yaw": 0.2,
     r".*_knee_pitch": 0.6,
     r".*_ankle_pitch": 0.2,
-    r".*_ankle_roll": 0.12,
+    r".*_ankle_roll": 0.5,
   }
 
   cfg.rewards["upright"].params["asset_cfg"].body_names = (_TRUNK,)
@@ -299,6 +299,7 @@ def roomie_rough_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
     cfg.rewards[reward_name].params["asset_cfg"].site_names = site_names
 
   cfg.rewards["body_ang_vel"].weight = -0.06
+  cfg.rewards.pop("soft_landing", None)
   cfg.rewards["angular_momentum"].weight = -0.02
   cfg.rewards["air_time"].weight = 0.3
 
@@ -307,7 +308,17 @@ def roomie_rough_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
     weight=-1.0,
     params={"sensor_name": self_collision_cfg.name, "force_threshold": 10.0},
   )
-
+  cfg.curriculum["action_rate_weight"] = CurriculumTermCfg(
+    func=envs_mdp.reward_curriculum,
+    params={
+      "reward_name": "action_rate_l2",
+      "stages": [
+        {"step": 0, "weight": -0.1},
+        {"step": 2500 * 24, "weight": -0.5},
+        {"step": 5000 * 24, "weight": -0.1},
+      ],
+    },
+  )
   # Apply play mode overrides.
   if play:
     # Effectively infinite episode length.

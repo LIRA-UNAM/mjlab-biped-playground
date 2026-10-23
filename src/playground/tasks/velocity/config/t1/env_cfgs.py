@@ -239,8 +239,8 @@ def t1_rough_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
     r".*_Hip_Roll": 0.15,
     r".*_Hip_Yaw": 0.15,
     r".*_Knee_Pitch": 0.4,
-    r".*_Ankle_Pitch": 0.15,
-    r".*_Ankle_Roll": 0.1,
+    r".*_Ankle_Pitch": 0.2,
+    r".*_Ankle_Roll": 0.5,
     # Waist.
     r"Waist": 0.2,
     # Arms.
@@ -255,7 +255,7 @@ def t1_rough_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
     r".*_Hip_Yaw": 0.2,
     r".*_Knee_Pitch": 0.6,
     r".*_Ankle_Pitch": 0.2,
-    r".*_Ankle_Roll": 0.12,
+    r".*_Ankle_Roll": 0.5,
     # Waist.
     r"Waist": 0.3,
     # Arms.
