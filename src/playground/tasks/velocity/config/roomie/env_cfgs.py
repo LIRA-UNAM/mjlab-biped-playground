@@ -29,6 +29,8 @@ from mjlab.managers.event_manager import EventTermCfg
 from mjlab.managers.reward_manager import RewardTermCfg
 from mjlab.managers.scene_entity_config import SceneEntityCfg
 from mjlab.managers.termination_manager import TerminationTermCfg
+from mjlab.managers.curriculum_manager import CurriculumTermCfg
+
 from mjlab.sensor import (
   ContactMatch,
   ContactSensorCfg,
@@ -275,21 +277,21 @@ def roomie_rough_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
   cfg.rewards["pose"].params["std_standing"] = {".*": 0.05}
   cfg.rewards["pose"].params["std_walking"] = {
     r"waist_yaw": 0.1,
-    r".*_hip_pitch": 0.3,
-    r".*_hip_roll": 0.15,
-    r".*_hip_yaw": 0.15,
-    r".*_knee_pitch": 0.4,
-    r".*_ankle_pitch": 0.2,
-    r".*_ankle_roll": 0.5,
-  }
-  cfg.rewards["pose"].params["std_running"] = {
-    r"waist_yaw": 0.15,
-    r".*_hip_pitch": 0.5,
+    r".*_hip_pitch": 0.6,
     r".*_hip_roll": 0.2,
     r".*_hip_yaw": 0.2,
     r".*_knee_pitch": 0.6,
     r".*_ankle_pitch": 0.2,
-    r".*_ankle_roll": 0.5,
+    r".*_ankle_roll": 0.1,
+  }
+  cfg.rewards["pose"].params["std_running"] = {
+    r"waist_yaw": 0.1,
+    r".*_hip_pitch": 0.6,
+    r".*_hip_roll": 0.2,
+    r".*_hip_yaw": 0.2,
+    r".*_knee_pitch": 0.6,
+    r".*_ankle_pitch": 0.2,
+    r".*_ankle_roll": 0.1,
   }
 
   cfg.rewards["upright"].params["asset_cfg"].body_names = (_TRUNK,)
@@ -314,8 +316,8 @@ def roomie_rough_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
       "reward_name": "action_rate_l2",
       "stages": [
         {"step": 0, "weight": -0.1},
-        {"step": 2500 * 24, "weight": -0.5},
-        {"step": 5000 * 24, "weight": -0.1},
+        {"step": 5000 * 24, "weight": -0.5},
+        {"step": 10000 * 24, "weight": -1.0},
       ],
     },
   )
