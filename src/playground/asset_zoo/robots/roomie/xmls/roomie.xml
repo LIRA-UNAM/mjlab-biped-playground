@@ -1,6 +1,6 @@
 <?xml version='1.0' encoding='utf-8'?>
-<mujoco model="roomie">
-  <compiler angle="radian" meshdir="meshes" inertiafromgeom="false" alignfree="false" />
+<mujoco model="Roomie full-body V4 PPO variant">
+  <compiler angle="radian" meshdir="v3/meshes" inertiafromgeom="false" alignfree="false" />
   <option timestep="0.001" integrator="implicitfast" solver="Newton" iterations="100" gravity="0 0 -9.81" />
   <statistic center="0 0 0.65" extent="1.7" />
   <visual>
@@ -2354,6 +2354,7 @@
   <worldbody>
     <light pos="1 -2 3" dir="-1 2 -3" diffuse=".8 .8 .8" />
     <light pos="-2 1 2" dir="2 -1 -2" diffuse=".4 .4 .4" />
+    <geom name="floor" type="plane" size="3 3 .1" contype="1" conaffinity="2" group="0" rgba=".89 .91 .92 1" solref="0.005 1" friction="0.8 0.02 0.001" />
     <body name="torso" pos="0 0 0.706371640655">
       <freejoint name="floating_base" />
       <inertial pos="-0.0029214257067 -0.00171277899233 0.238729541451" mass="6.0137" fullinertia="0.089385795423 0.065392663262 0.0414438987443 4.64384397892e-06 0.000576094487915 -0.000550979061418" />
@@ -2401,16 +2402,15 @@
                 <geom name="right_knee_pitch_link_metal_ground_proxy" type="mesh" mesh="right_knee_pitch_link_metal_0" contype="2" conaffinity="1" group="3" friction="0.8 0.02 0.001" solref="0.005 1" rgba=".9 .4 .1 .2" />
                 <body name="right_ankle_pitch_link" pos="-1.84108804591e-13 0.00395067486117 -0.31312198078">
                   <joint name="right_ankle_pitch" type="hinge" axis="0 1 0" range="-0.8 0.45" />
-                  <inertial pos="-0.0104933498385 -0.0075 -0.0150171951197" mass="0.03269090061619" fullinertia="2.117300968683e-06 1.253938427436e-05 1.177369073368e-05 3.258270596332e-19 -6.178391731846e-07 -6.151828786884e-20" />
+                  <inertial pos="-0.0104933498385 -0.0075 -0.0150171951197" mass="0.044454036649879" fullinertia="2.8791673856194e-06 1.7051419128638e-05 1.6010206801098e-05 4.4306910416788e-19 -8.4015566199718e-07 -8.3654355554978e-20" />
                   <geom type="mesh" mesh="right_ankle_pitch_link_structure_0" material="structure" name="right_ankle_pitch_link_structure_0" />
                   <geom name="right_ankle_pitch_link_ground_proxy" type="box" pos="-0.012 -0.0075 -0.00881547594742" size="0.0385 0.00943073430393 0.0175154759474" contype="2" conaffinity="1" group="3" friction="0.8 0.02 0.001" solref="0.005 1" rgba=".9 .4 .1 .2" />
                   <body name="right_foot" pos="0.0265 -0.0075 -0.0168309518948">
                     <joint name="right_ankle_roll" type="hinge" axis="1 0 0" range="-0.29 0.29" />
-                    <inertial pos="-0.0254166319083 -3.02091996335e-07 -0.0135654166442" mass="0.3472379066041" fullinertia="0.0002151564505865 0.001195447030678 0.001286084501654 -1.685773485281e-09 7.593573696563e-05 -7.234919308998e-10" />
+                    <inertial pos="-0.0254166319083 -3.02091996335e-07 -0.0135654166442" mass="0.47218419607446" fullinertia="0.0002925759939172 0.0016256036118023 0.0017488550787449 -2.2923637735744e-09 0.0001032596218054 -9.8382535218939e-10" />
                     <geom type="mesh" mesh="right_foot_structure_0" material="structure" name="right_foot_structure_0" />
                     <geom type="mesh" mesh="right_foot_metal_0" material="metal" name="right_foot_metal_0" />
                     <geom name="right_foot_contact" type="box" pos="-0.0198601926608 -7.17997760079e-06 -0.019138" size="0.111860192661 0.0450282712701 0.005" contype="2" conaffinity="1" group="3" friction="0.8 0.02 0.001" solref="0.005 1" rgba="0 .7 .2 .25" />
-                    <site name="right_foot" pos="-0.0198601926608 -7.17997760079e-06 -0.024138" size="0.005" />
                     <site name="right_near_rod_foot_anchor" pos="-0.071 -0.02802 0.032437" size=".002" />
                     <site name="right_far_rod_foot_anchor" pos="-0.071 0.02802 0.032437" size=".002" />
                     <geom name="self_collision_right_foot_structure_0_0" type="mesh" mesh="self_collision_right_foot_structure_0_0" mass="0" contype="4" conaffinity="124" group="4" margin="0.0003" friction="0.5 0.02 0.001" solref="0.005 1" solimp="0.95 0.99 0.001 0.5 2" rgba="0.8 0.2 0.1 0.25" />
@@ -2547,14 +2547,14 @@
                 </body>
                 <body name="right_near_crank" pos="1.18877997723e-13 -0.0362493251388 -0.21137198078">
                   <joint name="right_ankle_near_motor" type="hinge" axis="0 1 0" range="-1.5 1.5" armature="0" />
-                  <inertial pos="-0.00812954563153 -0.0060448217529 -0.000186889656918" mass="0.03099114017696" fullinertia="3.357911738108e-06 1.336834087798e-05 1.090886785203e-05 -5.826858206703e-08 -1.732117272185e-07 -1.471898982927e-09" />
+                  <inertial pos="-0.00812954563153 -0.0060448217529 -0.000186889656918" mass="0.042142653009866" fullinertia="4.5661859618204e-06 1.8178658407578e-05 1.4834195515025e-05 -7.9235311169782e-08 -2.355383401749e-07 -2.001531010117e-09" />
                   <geom type="mesh" mesh="right_near_crank_structure_0" material="structure" name="right_near_crank_structure_0" />
                   <geom type="mesh" mesh="right_near_crank_metal_0" material="metal" name="right_near_crank_metal_0" />
                   <geom name="right_near_crank_ground_proxy" type="box" pos="-0.0134945536703 0.022425 9.92173765813e-07" size="0.0419908509477 0.034075 0.0284972894512" contype="2" conaffinity="1" group="3" friction="0.8 0.02 0.001" solref="0.005 1" rgba=".9 .4 .1 .2" />
                   <body name="right_near_rod" pos="-0.0499868510072 0.00468 -0.00114661518524">
                     <joint name="right_near_rod_pitch" type="hinge" axis="0 1 0" limited="false" armature="0.0001" damping=".002" />
                     <joint name="right_near_rod_roll" type="hinge" axis="1 0 0" limited="false" armature="0.0001" damping=".002" />
-                    <inertial pos="0.00274373124688 -5.34053000711e-07 -0.0424992606097" mass="0.01070383517678" fullinertia="1.54173217449e-05 1.575923640807e-05 4.553925336004e-07 8.874648310716e-08 9.703933239955e-07 5.531592006784e-09" />
+                    <inertial pos="0.00274373124688 -5.34053000711e-07 -0.0424992606097" mass="0.014555386125006" fullinertia="2.0964922133449e-05 2.142986762841e-05 6.1925600081901e-07 1.2068004668674e-07 1.3195690414332e-06 7.522019557943e-09" />
                     <geom type="mesh" mesh="right_near_rod_structure_0" material="structure" name="right_near_rod_structure_0" />
                     <geom type="mesh" mesh="right_near_rod_metal_0" material="metal" name="right_near_rod_metal_0" />
                     <geom name="right_near_rod_ground_proxy" type="box" pos="0.00274342550345 -1.49880108324e-15 -0.0424986683548" size="0.0156527393643 0.00643302589354 0.0550748228981" contype="2" conaffinity="1" group="3" friction="0.8 0.02 0.001" solref="0.005 1" rgba=".9 .4 .1 .2" />
@@ -2679,14 +2679,14 @@
                 </body>
                 <body name="right_far_crank" pos="-4.87716637909e-13 0.0291506748612 -0.11312198078">
                   <joint name="right_ankle_far_motor" type="hinge" axis="0 1 0" range="-1.5 1.5" armature="0" />
-                  <inertial pos="-0.00813164153692 0.0060448217529 -4.31937831807e-05" mass="0.03099114017696" fullinertia="3.354158219255e-06 1.336850361572e-05 1.091278410862e-05 5.826607451979e-08 -4.062090098333e-08 1.739080105892e-10" />
+                  <inertial pos="-0.00813164153692 0.0060448217529 -4.31937831807e-05" mass="0.042142653009866" fullinertia="4.5610818178074e-06 1.8178879703086e-05 1.4839520954542e-05 7.9231901334176e-08 -5.5237481593571e-08 2.3648516653625e-10" />
                   <geom type="mesh" mesh="right_far_crank_structure_0" material="structure" name="right_far_crank_structure_0" />
                   <geom type="mesh" mesh="right_far_crank_metal_0" material="metal" name="right_far_crank_metal_0" />
                   <geom name="right_far_crank_ground_proxy" type="box" pos="-0.0134997357219 -0.022425 -2.15091047812e-05" size="0.0419994666867 0.034075 0.0284075127036" contype="2" conaffinity="1" group="3" friction="0.8 0.02 0.001" solref="0.005 1" rgba=".9 .4 .1 .2" />
                   <body name="right_far_rod" pos="-0.0499992814492 -0.00468 -0.000268057008873">
                     <joint name="right_far_rod_pitch" type="hinge" axis="0 1 0" limited="false" armature="0.0001" damping=".002" />
                     <joint name="right_far_rod_roll" type="hinge" axis="1 0 0" limited="false" armature="0.0001" damping=".002" />
-                    <inertial pos="0.00274943739464 2.47376638812e-07 -0.0920632456017" mass="0.01538507724898" fullinertia="8.275587029344e-05 8.308385412421e-05 4.879122915716e-07 -1.057913098709e-07 2.459189421727e-06 -3.164562813372e-09" />
+                    <inertial pos="0.00274943739464 2.47376638812e-07 -0.0920632456017" mass="0.020921075130878" fullinertia="0.00011253383729646 0.0001129798392407 6.6347731272685e-07 -1.4385809743983e-07 3.3440772392886e-06 -4.3032644752777e-09" />
                     <geom type="mesh" mesh="right_far_rod_structure_0" material="structure" name="right_far_rod_structure_0" />
                     <geom type="mesh" mesh="right_far_rod_metal_0" material="metal" name="right_far_rod_metal_0" />
                     <geom name="right_far_rod_ground_proxy" type="box" pos="0.00274964072477 -8.18789480661e-16 -0.092062947443" size="0.0155253139867 0.00713852772012 0.104680919852" contype="2" conaffinity="1" group="3" friction="0.8 0.02 0.001" solref="0.005 1" rgba=".9 .4 .1 .2" />
@@ -3180,16 +3180,15 @@
                 <geom name="left_knee_pitch_link_metal_ground_proxy" type="mesh" mesh="left_knee_pitch_link_metal_0" contype="2" conaffinity="1" group="3" friction="0.8 0.02 0.001" solref="0.005 1" rgba=".9 .4 .1 .2" />
                 <body name="left_ankle_pitch_link" pos="8.33890248519e-14 -0.00395067558495 -0.31312198078">
                   <joint name="left_ankle_pitch" type="hinge" axis="0 1 0" range="-0.8 0.45" />
-                  <inertial pos="-0.0104933498385 0.0075 -0.0150171951197" mass="0.03269098307074" fullinertia="2.117306309051e-06 1.253941590179e-05 1.177372042991e-05 -3.259955188642e-19 -6.178407315289e-07 6.122575264633e-20" />
+                  <inertial pos="-0.0104933498385 0.0075 -0.0150171951197" mass="0.044454148773972" fullinertia="2.879174647607e-06 1.7051462136537e-05 1.6010247182895e-05 -4.4329817992559e-19 -8.4015778107904e-07 8.3256557658385e-20" />
                   <geom type="mesh" mesh="left_ankle_pitch_link_structure_0" material="structure" name="left_ankle_pitch_link_structure_0" />
                   <geom name="left_ankle_pitch_link_ground_proxy" type="box" pos="-0.012 0.0075 -0.00881547594742" size="0.0385 0.00943073430393 0.0175154759474" contype="2" conaffinity="1" group="3" friction="0.8 0.02 0.001" solref="0.005 1" rgba=".9 .4 .1 .2" />
                   <body name="left_foot" pos="0.0265 0.0075 -0.0168309518948">
                     <joint name="left_ankle_roll" type="hinge" axis="1 0 0" range="-0.29 0.29" />
-                    <inertial pos="-0.0254166319083 3.02091996293e-07 -0.0135654359461" mass="0.3472387824247" fullinertia="0.000215157070645 0.001195450123279 0.001286087745486 1.685777737201e-09 7.593555680225e-05 4.988340769159e-10" />
+                    <inertial pos="-0.0254166319083 3.02091996293e-07 -0.0135654359461" mass="0.47218538704077" fullinertia="0.00029257683709076 0.001625607817211 0.0017488594898019 2.2923695554588e-09 0.000103259376814 6.7832907382325e-10" />
                     <geom type="mesh" mesh="left_foot_structure_0" material="structure" name="left_foot_structure_0" />
                     <geom type="mesh" mesh="left_foot_metal_0" material="metal" name="left_foot_metal_0" />
                     <geom name="left_foot_contact" type="box" pos="-0.0198601926608 7.17997760079e-06 -0.019138" size="0.111860192661 0.0450282712701 0.005" contype="2" conaffinity="1" group="3" friction="0.8 0.02 0.001" solref="0.005 1" rgba="0 .7 .2 .25" />
-                    <site name="left_foot" pos="-0.0198601926608 7.17997760079e-06 -0.024138" size="0.005" />
                     <site name="left_near_rod_foot_anchor" pos="-0.071 0.02802 0.032437" size=".002" />
                     <site name="left_far_rod_foot_anchor" pos="-0.071 -0.02802 0.032437" size=".002" />
                     <geom name="self_collision_left_foot_structure_0_0" type="mesh" mesh="self_collision_left_foot_structure_0_0" mass="0" contype="4" conaffinity="124" group="4" margin="0.0003" friction="0.5 0.02 0.001" solref="0.005 1" solimp="0.95 0.99 0.001 0.5 2" rgba="0.8 0.2 0.1 0.25" />
@@ -3326,14 +3325,14 @@
                 </body>
                 <body name="left_near_crank" pos="3.86375827166e-13 0.0362493244151 -0.21137198078">
                   <joint name="left_ankle_near_motor" type="hinge" axis="0 1 0" range="-1.5 1.5" armature="0" />
-                  <inertial pos="-0.00812925845522 0.00604482621789 -0.000186625344469" mass="0.030990628161" fullinertia="3.357767116044e-06 1.336773776315e-05 1.090840444983e-05 5.830417719486e-08 -1.732053934248e-07 1.456143539945e-09" />
+                  <inertial pos="-0.00812925845522 0.00604482621789 -0.000186625344469" mass="0.042141956755685" fullinertia="4.565989300535e-06 1.8177838274506e-05 1.4833565367247e-05 7.9283714458993e-08 -2.3552972729817e-07 1.9801063008996e-09" />
                   <geom type="mesh" mesh="left_near_crank_structure_0" material="structure" name="left_near_crank_structure_0" />
                   <geom type="mesh" mesh="left_near_crank_metal_0" material="metal" name="left_near_crank_metal_0" />
                   <geom name="left_near_crank_ground_proxy" type="box" pos="-0.0134945536703 -0.022425 9.92173765813e-07" size="0.0419908509477 0.034075 0.0284972894512" contype="2" conaffinity="1" group="3" friction="0.8 0.02 0.001" solref="0.005 1" rgba=".9 .4 .1 .2" />
                   <body name="left_near_rod" pos="-0.0499868510072 -0.00468 -0.00114661518524">
                     <joint name="left_near_rod_pitch" type="hinge" axis="0 1 0" limited="false" armature="0.0001" damping=".002" />
                     <joint name="left_near_rod_roll" type="hinge" axis="1 0 0" limited="false" armature="0.0001" damping=".002" />
-                    <inertial pos="0.00274400580979 6.25666839699e-07 -0.0424986331133" mass="0.01070386215153" fullinertia="1.541718216576e-05 1.575905864187e-05 4.554000888317e-07 -8.877864126386e-08 9.702096730013e-07 -5.657789633783e-09" />
+                    <inertial pos="0.00274400580979 6.25666839699e-07 -0.0424986331133" mass="0.014555422806055" fullinertia="2.0964732329679e-05 2.1429625896765e-05 6.1926627464208e-07 -1.2072377628274e-07 1.3193193074744e-06 -7.6936267584177e-09" />
                     <geom type="mesh" mesh="left_near_rod_structure_0" material="structure" name="left_near_rod_structure_0" />
                     <geom type="mesh" mesh="left_near_rod_metal_0" material="metal" name="left_near_rod_metal_0" />
                     <geom name="left_near_rod_ground_proxy" type="box" pos="0.00274342550345 1.49880108324e-15 -0.0424986683548" size="0.0156527393643 0.00643302589354 0.0550748228981" contype="2" conaffinity="1" group="3" friction="0.8 0.02 0.001" solref="0.005 1" rgba=".9 .4 .1 .2" />
@@ -3458,14 +3457,14 @@
                 </body>
                 <body name="left_far_crank" pos="-2.20218808467e-13 -0.0291506755849 -0.11312198078">
                   <joint name="left_ankle_far_motor" type="hinge" axis="0 1 0" range="-1.5 1.5" armature="0" />
-                  <inertial pos="-0.00813134699891 -0.00604482621789 -4.34498653097e-05" mass="0.030990628161" fullinertia="3.354013700116e-06 1.336790050227e-05 1.091232060489e-05 -5.830120958971e-08 -4.061820903705e-08 -1.906641839665e-10" />
+                  <inertial pos="-0.00813134699891 -0.00604482621789 -4.34498653097e-05" mass="0.042141956755685" fullinertia="4.5608852964825e-06 1.817805957189e-05 1.4838890668701e-05 -7.9279679023272e-08 -5.5233821006792e-08 -2.5927069802624e-10" />
                   <geom type="mesh" mesh="left_far_crank_structure_0" material="structure" name="left_far_crank_structure_0" />
                   <geom type="mesh" mesh="left_far_crank_metal_0" material="metal" name="left_far_crank_metal_0" />
                   <geom name="left_far_crank_ground_proxy" type="box" pos="-0.0134997357219 0.022425 -2.15091047812e-05" size="0.0419994666867 0.034075 0.0284075127036" contype="2" conaffinity="1" group="3" friction="0.8 0.02 0.001" solref="0.005 1" rgba=".9 .4 .1 .2" />
                   <body name="left_far_rod" pos="-0.0499992814492 0.00468 -0.000268057008873">
                     <joint name="left_far_rod_pitch" type="hinge" axis="0 1 0" limited="false" armature="0.0001" damping=".002" />
                     <joint name="left_far_rod_roll" type="hinge" axis="1 0 0" limited="false" armature="0.0001" damping=".002" />
-                    <inertial pos="0.00274925070295 -1.8230139523e-07 -0.0920630254601" mass="0.01538511603102" fullinertia="8.275516301773e-05 8.308318672465e-05 4.879023457171e-07 1.057583184066e-07 2.459675785956e-06 3.020519785498e-09" />
+                    <inertial pos="0.00274925070295 -1.8230139523e-07 -0.0920630254601" mass="0.020921127867823" fullinertia="0.0001125328755224 0.00011297893169138 6.6346378806488e-07 1.4381323468795e-07 3.3447386115009e-06 4.1073905801088e-09" />
                     <geom type="mesh" mesh="left_far_rod_structure_0" material="structure" name="left_far_rod_structure_0" />
                     <geom type="mesh" mesh="left_far_rod_metal_0" material="metal" name="left_far_rod_metal_0" />
                     <geom name="left_far_rod_ground_proxy" type="box" pos="0.00274964072477 8.18789480661e-16 -0.092062947443" size="0.0155253139867 0.00713852772012 0.104680919852" contype="2" conaffinity="1" group="3" friction="0.8 0.02 0.001" solref="0.005 1" rgba=".9 .4 .1 .2" />
@@ -4904,16 +4903,40 @@
     <exclude name="closure_right_far" body1="right_far_rod" body2="right_foot" />
   </contact>
   <equality>
-    <connect name="right_near_rod_closure" site1="right_near_rod_end" site2="right_near_rod_foot_anchor" solref="0.01 1" solimp="0.95 0.99 0.001" />
-    <connect name="right_far_rod_closure" site1="right_far_rod_end" site2="right_far_rod_foot_anchor" solref="0.01 1" solimp="0.95 0.99 0.001" />
-    <connect name="left_near_rod_closure" site1="left_near_rod_end" site2="left_near_rod_foot_anchor" solref="0.01 1" solimp="0.95 0.99 0.001" />
-    <connect name="left_far_rod_closure" site1="left_far_rod_end" site2="left_far_rod_foot_anchor" solref="0.01 1" solimp="0.95 0.99 0.001" />
+    <connect name="right_near_rod_closure" site1="right_near_rod_end" site2="right_near_rod_foot_anchor" solref="0.003 1" solimp="0.9 0.95 0.001 0.5 2" />
+    <connect name="right_far_rod_closure" site1="right_far_rod_end" site2="right_far_rod_foot_anchor" solref="0.003 1" solimp="0.9 0.95 0.001 0.5 2" />
+    <connect name="left_near_rod_closure" site1="left_near_rod_end" site2="left_near_rod_foot_anchor" solref="0.003 1" solimp="0.9 0.95 0.001 0.5 2" />
+    <connect name="left_far_rod_closure" site1="left_far_rod_end" site2="left_far_rod_foot_anchor" solref="0.003 1" solimp="0.9 0.95 0.001 0.5 2" />
   </equality>
+  <actuator>
+    <position name="waist_yaw_actuator" joint="waist_yaw" gear="1" kp="10" kv="0.1" ctrllimited="true" ctrlrange="-1.57 1.57" forcelimited="true" forcerange="-25 25" />
+    <position name="right_hip_pitch_actuator" joint="right_hip_pitch" gear="1" kp="10" kv="0.1" ctrllimited="true" ctrlrange="-2.345 2.2166" forcelimited="true" forcerange="-25 25" />
+    <position name="right_hip_roll_actuator" joint="right_hip_roll" gear="1" kp="10" kv="0.1" ctrllimited="true" ctrlrange="-0.889 0.2" forcelimited="true" forcerange="-25 25" />
+    <position name="right_hip_yaw_actuator" joint="right_hip_yaw" gear="1" kp="10" kv="0.1" ctrllimited="true" ctrlrange="-1 1" forcelimited="true" forcerange="-17.4 17.4" />
+    <position name="right_knee_pitch_actuator" joint="right_knee_pitch" gear="1" kp="10" kv="0.1" ctrllimited="true" ctrlrange="-0.05 2.1817" forcelimited="true" forcerange="-25 25" />
+    <position name="right_ankle_near_motor_actuator" joint="right_ankle_near_motor" gear="1" kp="10" kv="0.1" ctrllimited="true" ctrlrange="-1.5 1.5" forcelimited="true" forcerange="-17.4 17.4" />
+    <position name="right_ankle_far_motor_actuator" joint="right_ankle_far_motor" gear="1" kp="10" kv="0.1" ctrllimited="true" ctrlrange="-1.5 1.5" forcelimited="true" forcerange="-17.4 17.4" />
+    <position name="left_hip_pitch_actuator" joint="left_hip_pitch" gear="1" kp="10" kv="0.1" ctrllimited="true" ctrlrange="-2.345 2.2166" forcelimited="true" forcerange="-25 25" />
+    <position name="left_hip_roll_actuator" joint="left_hip_roll" gear="1" kp="10" kv="0.1" ctrllimited="true" ctrlrange="-0.2 0.889" forcelimited="true" forcerange="-25 25" />
+    <position name="left_hip_yaw_actuator" joint="left_hip_yaw" gear="1" kp="10" kv="0.1" ctrllimited="true" ctrlrange="-1 1" forcelimited="true" forcerange="-17.4 17.4" />
+    <position name="left_knee_pitch_actuator" joint="left_knee_pitch" gear="1" kp="10" kv="0.1" ctrllimited="true" ctrlrange="-0.05 2.1817" forcelimited="true" forcerange="-25 25" />
+    <position name="left_ankle_near_motor_actuator" joint="left_ankle_near_motor" gear="1" kp="10" kv="0.1" ctrllimited="true" ctrlrange="-1.5 1.5" forcelimited="true" forcerange="-17.4 17.4" />
+    <position name="left_ankle_far_motor_actuator" joint="left_ankle_far_motor" gear="1" kp="10" kv="0.1" ctrllimited="true" ctrlrange="-1.5 1.5" forcelimited="true" forcerange="-17.4 17.4" />
+    <position name="left_shoulder_pitch_actuator" joint="left_shoulder_pitch" gear="1" kp="10" kv="0.1" ctrllimited="true" ctrlrange="-3.29 1.18" forcelimited="true" forcerange="-17.4 17.4" />
+    <position name="left_shoulder_roll_actuator" joint="left_shoulder_roll" gear="1" kp="10" kv="0.1" ctrllimited="true" ctrlrange="-1.577 1.7055" forcelimited="true" forcerange="-17.4 17.4" />
+    <position name="left_shoulder_yaw_actuator" joint="left_shoulder_yaw" gear="1" kp="10" kv="0.1" ctrllimited="true" ctrlrange="-2.1402 1.6844" forcelimited="true" forcerange="-17.4 17.4" />
+    <position name="left_elbow_pitch_actuator" joint="left_elbow_pitch" gear="1" kp="10" kv="0.1" ctrllimited="true" ctrlrange="-2.234 2.234" forcelimited="true" forcerange="-17.4 17.4" />
+    <position name="right_shoulder_pitch_actuator" joint="right_shoulder_pitch" gear="1" kp="10" kv="0.1" ctrllimited="true" ctrlrange="-3.29 1.1868" forcelimited="true" forcerange="-17.4 17.4" />
+    <position name="right_shoulder_roll_actuator" joint="right_shoulder_roll" gear="1" kp="10" kv="0.1" ctrllimited="true" ctrlrange="-1.577 1.7055" forcelimited="true" forcerange="-17.4 17.4" />
+    <position name="right_shoulder_yaw_actuator" joint="right_shoulder_yaw" gear="1" kp="10" kv="0.1" ctrllimited="true" ctrlrange="-1.6844 2.1402" forcelimited="true" forcerange="-17.4 17.4" />
+    <position name="right_elbow_pitch_actuator" joint="right_elbow_pitch" gear="1" kp="10" kv="0.1" ctrllimited="true" ctrlrange="-2.234 2.234" forcelimited="true" forcerange="-17.4 17.4" />
+  </actuator>
   <sensor>
-    <velocimeter name="imu_lin_vel" site="imu" />
-    <gyro name="imu_ang_vel" site="imu" />
-    <accelerometer name="imu_lin_acc" site="imu" />
-    <framequat name="orientation" objtype="site" objname="imu" />
-    <subtreeangmom name="root_angmom" body="torso" />
+    <framequat name="base_orientation" objtype="site" objname="base_reference" />
+    <framelinvel name="base_linear_velocity" objtype="site" objname="base_reference" />
+    <frameangvel name="base_angular_velocity" objtype="site" objname="base_reference" />
+    <framequat name="imu_orientation" objtype="site" objname="imu" />
+    <gyro name="imu_angular_velocity" site="imu" />
+    <accelerometer name="imu_acceleration" site="imu" />
   </sensor>
 </mujoco>
