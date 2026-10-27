@@ -18,15 +18,15 @@ from playground.tasks.velocity.config.roomie.symmetry import (
   mirror_joint_name,
 )
 
-# The "joint_pos" action term targets the same 13 waist + leg joints, in MJCF order.
+# The "joint_pos" action term targets the same 9 waist + hip + knee joints, in MJCF order.
 ACTION_JOINT_NAMES = OBS_JOINT_NAMES
 
 ACTOR_TERMS = [
   ("base_ang_vel", 3),
   ("projected_gravity", 3),
-  ("joint_pos", 13),
-  ("joint_vel", 13),
-  ("actions", 13),
+  ("joint_pos", 9),
+  ("joint_vel", 9),
+  ("actions", 9),
   ("command", 3),
 ]
 CRITIC_EXTRA_TERMS = [
@@ -61,10 +61,10 @@ def _apply(x: torch.Tensor, perm: torch.Tensor, sign: torch.Tensor) -> torch.Ten
   return x[:, perm] * sign
 
 
-def test_obs_joints_are_waist_and_legs():
-  assert len(OBS_JOINT_NAMES) == 13
+def test_obs_joints_are_waist_hips_and_knees():
+  assert len(OBS_JOINT_NAMES) == 9
   assert OBS_JOINT_NAMES[0] == "waist_yaw"
-  assert not any("shoulder" in n or "elbow" in n for n in OBS_JOINT_NAMES)
+  assert not any(part in n for n in OBS_JOINT_NAMES for part in ("shoulder", "elbow", "ankle"))
 
 
 def test_mirror_joint_name():
@@ -87,8 +87,10 @@ def test_joint_mirror_signs():
     flipped = name.endswith(("_roll", "_yaw"))
     assert sign_of[name] == (-1.0 if flipped else 1.0), name
   assert sign_of["waist_yaw"] == -1.0
-  # Both ankle cranks point along +y and never flip.
-  assert sign_of["left_ankle_near_motor"] == sign_of["left_ankle_far_motor"] == 1.0
+  # The mirror still keeps the sign of both ankle cranks (axes along +y), should
+  # they return to the joint list.
+  _, crank_sign = joint_mirror(("left_ankle_near_motor", "right_ankle_near_motor"))
+  assert crank_sign == [1.0, 1.0]
 
 
 def test_joint_mirror_requires_partner():
@@ -119,8 +121,7 @@ def _joint_qpos_address(model: mujoco.MjModel, name: str) -> int:
 def test_mirror_matches_forward_kinematics():
   """Mirrored joint angles must produce the mirror image of every body position.
 
-  This validates the sign of each joint, including the waist and the ankle
-  cranks, against the actual kinematic tree rather than against assumptions.
+  This validates the sign of each joint, including the waist, against the actual kinematic tree rather than against assumptions.
   """
   model = get_roomie_robot_cfg().build().spec.compile()
   perm, sign = joint_mirror(OBS_JOINT_NAMES)
@@ -154,3 +155,19 @@ def test_mirror_matches_forward_kinematics():
     )
     checked += 1
   assert checked > 20
+
+
+def test_env_spaces_exclude_the_ankles():
+  from mjlab.envs.mdp.actions import JointPositionActionCfg
+  from playground.tasks.velocity.config.roomie.env_cfgs import roomie_flat_env_cfg
+
+  cfg = roomie_flat_env_cfg()
+  action = cfg.actions["joint_pos"]
+  assert isinstance(action, JointPositionActionCfg)
+  assert not any("ankle" in p for p in action.actuator_names)
+  assert set(action.scale) == {
+    "waist_yaw", ".*_hip_pitch", ".*_hip_roll", ".*_hip_yaw", ".*_knee_pitch"}
+  held = cfg.events["hold_fixed_targets"].params["asset_cfg"].joint_names
+  assert ".*_ankle_near_motor" in held and ".*_ankle_far_motor" in held
+  # The cranks hold the linkage zero.
+  assert not any("ankle" in n or "rod" in n for n in HOME_KEYFRAME.joint_pos)

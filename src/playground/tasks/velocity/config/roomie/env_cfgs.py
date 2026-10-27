@@ -1,11 +1,11 @@
 """Roomie V3 velocity tracking environment configurations.
 
-Built on mjlab's ``make_velocity_env_cfg`` and customized like the parallel-ankle
-Booster K1 task: the ankles are driven by the two crank joints of each linkage,
-while the ankle pitch/roll and rod joints stay passive and hidden from the policy.
-The policy controls the legs and waist: the arms are servoed to their
-HOME_KEYFRAME pose by a reset event that sets their position targets. Actuator gains are placeholders (see
-``roomie_constants``).
+Built on mjlab's ``make_velocity_env_cfg``. The policy controls 9 motors: the
+waist yaw and each leg's hip pitch/roll/yaw and knee. The ankles are not policy
+joints: both crank motors of each parallel linkage are held at 0 (feet flat
+relative to the shins), and the ankle pitch/roll and rod joints stay passive.
+The cranks and the arms are servoed to their HOME_KEYFRAME pose by a reset event
+that sets their position targets. Actuators: see ``roomie_constants``.
 """
 
 import math
@@ -46,22 +46,22 @@ from mjlab.tasks.velocity import mdp
 from mjlab.tasks.velocity.mdp import UniformVelocityCommandCfg
 from mjlab.tasks.velocity.velocity_env_cfg import make_velocity_env_cfg
 
-# Leg actuator patterns. The ankle is driven by the two crank joints of the
-# parallel linkage (the ankle pitch/roll joints are passive).
+# Leg actuator patterns of the policy: hips and knees. The ankles are left out
+# (the MJCF/robot ankle mapping proved unreliable): both crank motors of each
+# parallel linkage are held at 0, which keeps the feet flat relative to the shins.
 _LEG_ACTUATOR_PATTERNS = (
   ".*_hip_pitch",
   ".*_hip_roll",
   ".*_hip_yaw",
   ".*_knee_pitch",
-  ".*_ankle_near_motor",
-  ".*_ankle_far_motor",
 )
 
-# Arm joints: actuated, but held at HOME_KEYFRAME by hold_default_joint_targets.
+# Actuated joints outside the action space, held at HOME_KEYFRAME by
+# hold_default_joint_targets: the arms and the ankle cranks (at 0).
 _ARM_JOINT_PATTERNS = (".*_shoulder_.*", ".*_elbow_.*")
+_ANKLE_CRANK_PATTERNS = (".*_ankle_near_motor", ".*_ankle_far_motor")
 
-# Waist + legs: 13 motors are the action space. The arms are left out until
-# their model is fixed; they hold the HOME_KEYFRAME pose.
+# Waist + hips + knees: 9 motors are the action space.
 _ACTION_JOINT_PATTERNS = ("waist_yaw",) + _LEG_ACTUATOR_PATTERNS
 
 _ROOMIE_ACTION_SCALE = {
@@ -69,22 +69,21 @@ _ROOMIE_ACTION_SCALE = {
 }
 
 # Joints seen by the policy/critic (joint_pos, joint_vel) and given an encoder
-# bias: the 13 actuated waist and leg joints in MJCF order. The arms and the
-# passive ankle pitch/roll and rod joints of the closed loop are excluded.
+# bias: the 9 action joints in MJCF order. The arms, the held ankle cranks and
+# the passive ankle pitch/roll and rod joints of the closed loop are excluded.
 OBS_JOINT_NAMES = tuple(
-  n for n in ROOMIE_ACTUATED_JOINTS if not any(arm in n for arm in ("_shoulder_", "_elbow_"))
+  n for n in ROOMIE_ACTUATED_JOINTS
+  if not any(part in n for part in ("_shoulder_", "_elbow_", "_ankle_"))
 )
 
-# Joints scored by the pose reward: the serial-equivalent ankle DOFs (passive
-# pitch/roll, so the std tables keep their meaning) plus the waist and other leg joints.
+# Joints scored by the pose reward: the policy joints (the held ankles are not
+# controllable).
 _POSE_JOINT_PATTERNS = (
   "waist_yaw",
   ".*_hip_pitch",
   ".*_hip_roll",
   ".*_hip_yaw",
   ".*_knee_pitch",
-  ".*_ankle_pitch",
-  ".*_ankle_roll",
 )
 
 _TRUNK = "torso"
@@ -169,8 +168,8 @@ def roomie_rough_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
   joint_pos_action.actuator_names = _ACTION_JOINT_PATTERNS
   joint_pos_action.scale = _ROOMIE_ACTION_SCALE
 
-  # Only the waist and leg motors reach the policy: joint observations and
-  # encoder bias cover the 13 action joints (no arms or passive linkage joints).
+  # Only the waist, hip and knee motors reach the policy: joint observations and
+  # encoder bias cover the 9 action joints (no arms or ankle joints).
   obs_joints = SceneEntityCfg("robot", joint_names=OBS_JOINT_NAMES, preserve_order=True)
   for group in cfg.observations.values():
     for term_name in ("joint_pos", "joint_vel"):
@@ -187,12 +186,16 @@ def roomie_rough_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
   cfg.events["reset_robot_joints"].params["position_range"] = (-0.1, 0.1)
   cfg.events["reset_robot_joints"].params["velocity_range"] = (-0.1, 0.1)
 
-  # The arms are outside the action space; servo them to the HOME_KEYFRAME pose
-  # (resets zero every joint target).
-  cfg.events["hold_arm_targets"] = EventTermCfg(
+  # The arms and the ankle cranks are outside the action space; servo them to
+  # the HOME_KEYFRAME pose (cranks at 0; resets zero every joint target).
+  cfg.events["hold_fixed_targets"] = EventTermCfg(
     func=hold_default_joint_targets,
     mode="reset",
-    params={"asset_cfg": SceneEntityCfg("robot", joint_names=_ARM_JOINT_PATTERNS)},
+    params={
+      "asset_cfg": SceneEntityCfg(
+        "robot", joint_names=_ARM_JOINT_PATTERNS + _ANKLE_CRANK_PATTERNS
+      )
+    },
   )
 
   # Four `connect` equalities add 12 constraint rows per environment.
@@ -306,8 +309,6 @@ def roomie_rough_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
     r".*_hip_roll": 0.2,
     r".*_hip_yaw": 0.2,
     r".*_knee_pitch": 0.6,
-    r".*_ankle_pitch": 0.2,
-    r".*_ankle_roll": 0.1,
   }
   cfg.rewards["pose"].params["std_running"] = {
     r"waist_yaw": 0.1,
@@ -315,8 +316,6 @@ def roomie_rough_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
     r".*_hip_roll": 0.2,
     r".*_hip_yaw": 0.2,
     r".*_knee_pitch": 0.6,
-    r".*_ankle_pitch": 0.2,
-    r".*_ankle_roll": 0.1,
   }
 
   cfg.rewards["upright"].params["asset_cfg"].body_names = (_TRUNK,)
