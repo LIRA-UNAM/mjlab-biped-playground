@@ -169,5 +169,10 @@ def test_env_spaces_exclude_the_ankles():
     "waist_yaw", ".*_hip_pitch", ".*_hip_roll", ".*_hip_yaw", ".*_knee_pitch"}
   held = cfg.events["hold_fixed_targets"].params["asset_cfg"].joint_names
   assert ".*_ankle_near_motor" in held and ".*_ankle_far_motor" in held
-  # The cranks hold the linkage zero.
-  assert not any("ankle" in n or "rod" in n for n in HOME_KEYFRAME.joint_pos)
+  # The cranks hold the toes-up HOME_KEYFRAME ankle (pitch -0.35).
+  assert HOME_KEYFRAME.joint_pos["left_ankle_pitch"] == pytest.approx(-0.35)
+  assert HOME_KEYFRAME.joint_pos["left_ankle_near_motor"] != 0.0
+  # No action-rate curriculum; the pose reward scores only the action joints.
+  assert "action_rate_weight" not in cfg.curriculum
+  pose_joints = cfg.rewards["pose"].params["asset_cfg"].joint_names
+  assert not any("ankle" in p or "shoulder" in p or "elbow" in p for p in pose_joints)

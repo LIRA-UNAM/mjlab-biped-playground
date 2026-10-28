@@ -2,8 +2,9 @@
 
 Built on mjlab's ``make_velocity_env_cfg``. The policy controls 9 motors: the
 waist yaw and each leg's hip pitch/roll/yaw and knee. The ankles are not policy
-joints: both crank motors of each parallel linkage are held at 0 (feet flat
-relative to the shins), and the ankle pitch/roll and rod joints stay passive.
+joints: both crank motors of each parallel linkage are held at their
+HOME_KEYFRAME angles (feet toes up), and the ankle pitch/roll and rod joints stay
+passive.
 The cranks and the arms are servoed to their HOME_KEYFRAME pose by a reset event
 that sets their position targets. Actuators: see ``roomie_constants``.
 """
@@ -32,7 +33,6 @@ from mjlab.managers.event_manager import EventTermCfg
 from mjlab.managers.reward_manager import RewardTermCfg
 from mjlab.managers.scene_entity_config import SceneEntityCfg
 from mjlab.managers.termination_manager import TerminationTermCfg
-from mjlab.managers.curriculum_manager import CurriculumTermCfg
 
 from mjlab.sensor import (
   ContactMatch,
@@ -48,7 +48,7 @@ from mjlab.tasks.velocity.velocity_env_cfg import make_velocity_env_cfg
 
 # Leg actuator patterns of the policy: hips and knees. The ankles are left out
 # (the MJCF/robot ankle mapping proved unreliable): both crank motors of each
-# parallel linkage are held at 0, which keeps the feet flat relative to the shins.
+# parallel linkage are held at their HOME_KEYFRAME angles (feet toes up).
 _LEG_ACTUATOR_PATTERNS = (
   ".*_hip_pitch",
   ".*_hip_roll",
@@ -57,7 +57,7 @@ _LEG_ACTUATOR_PATTERNS = (
 )
 
 # Actuated joints outside the action space, held at HOME_KEYFRAME by
-# hold_default_joint_targets: the arms and the ankle cranks (at 0).
+# hold_default_joint_targets: the arms and the ankle cranks (feet toes up).
 _ARM_JOINT_PATTERNS = (".*_shoulder_.*", ".*_elbow_.*")
 _ANKLE_CRANK_PATTERNS = (".*_ankle_near_motor", ".*_ankle_far_motor")
 
@@ -187,7 +187,7 @@ def roomie_rough_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
   cfg.events["reset_robot_joints"].params["velocity_range"] = (-0.1, 0.1)
 
   # The arms and the ankle cranks are outside the action space; servo them to
-  # the HOME_KEYFRAME pose (cranks at 0; resets zero every joint target).
+  # the HOME_KEYFRAME pose (feet toes up; resets zero every joint target).
   cfg.events["hold_fixed_targets"] = EventTermCfg(
     func=hold_default_joint_targets,
     mode="reset",
@@ -302,20 +302,22 @@ def roomie_rough_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
   cfg.rewards["pose"].params["asset_cfg"] = SceneEntityCfg(
     "robot", joint_names=_POSE_JOINT_PATTERNS
   )
-  cfg.rewards["pose"].params["std_standing"] = {".*": 0.05}
+  # Loose posture tolerances so the policy can explore strides and lower the
+  # torso (about 1.5-2x the previous stds).
+  cfg.rewards["pose"].params["std_standing"] = {".*": 0.1}
   cfg.rewards["pose"].params["std_walking"] = {
-    r"waist_yaw": 0.1,
-    r".*_hip_pitch": 0.6,
-    r".*_hip_roll": 0.2,
-    r".*_hip_yaw": 0.2,
-    r".*_knee_pitch": 0.6,
+    r"waist_yaw": 0.2,
+    r".*_hip_pitch": 1.0,
+    r".*_hip_roll": 0.35,
+    r".*_hip_yaw": 0.35,
+    r".*_knee_pitch": 1.0,
   }
   cfg.rewards["pose"].params["std_running"] = {
-    r"waist_yaw": 0.1,
-    r".*_hip_pitch": 0.6,
-    r".*_hip_roll": 0.2,
-    r".*_hip_yaw": 0.2,
-    r".*_knee_pitch": 0.6,
+    r"waist_yaw": 0.2,
+    r".*_hip_pitch": 1.2,
+    r".*_hip_roll": 0.4,
+    r".*_hip_yaw": 0.4,
+    r".*_knee_pitch": 1.2,
   }
 
   cfg.rewards["upright"].params["asset_cfg"].body_names = (_TRUNK,)
@@ -334,17 +336,7 @@ def roomie_rough_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
     weight=-1.0,
     params={"sensor_name": self_collision_cfg.name, "force_threshold": 10.0},
   )
-  cfg.curriculum["action_rate_weight"] = CurriculumTermCfg(
-    func=envs_mdp.reward_curriculum,
-    params={
-      "reward_name": "action_rate_l2",
-      "stages": [
-        {"step": 0, "weight": -0.1},
-        {"step": 5000 * 24, "weight": -0.5},
-        {"step": 10000 * 24, "weight": -1.0},
-      ],
-    },
-  )
+  # No action-rate curriculum: action_rate_l2 keeps the base weight (-0.1).
   # Apply play mode overrides.
   if play:
     # Effectively infinite episode length.

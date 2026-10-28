@@ -5,7 +5,8 @@ ankles: each ankle is driven by two cranks (``*_ankle_near_motor`` and
 ``*_ankle_far_motor``) whose rods are attached to the foot through a universal
 joint (``*_rod_pitch`` + ``*_rod_roll``). The ankle pitch/roll joints are
 passive and closed by four ``connect`` equalities in the MJCF. The cranks are
-actuated but not policy joints: they are held at 0 (see HOME_KEYFRAME).
+actuated but not policy joints: they are held at their HOME_KEYFRAME angles
+(feet toes up).
 
 All hinges use one axis convention: roll +X, pitch +Y, yaw +Z. Joint values in
 this file are MJCF (XML) angles, not the Roomie ROS/hardware public signs.
@@ -165,28 +166,47 @@ ROOMIE_FREE_RESET_JOINTS: tuple[str, ...] = tuple(
 ##
 
 
-# The ankles are not policy joints: both cranks are actuated but held at 0, the
-# neutral pose of the linkage (foot pitch and roll 0 relative to the shin, rods
-# and passive ankle joints all 0: the loops close exactly there). The ankle
-# mapping between the MJCF and the real linkage proved unreliable, while the
-# motor zero is the same neutral pose on the robot.
+def _linkage_pose(
+  near: float, near_rod_pitch: float, far: float, far_rod_pitch: float
+) -> dict[str, float]:
+  """Both legs' linkage angles for a symmetric ankle pose (roll = 0)."""
+  return {
+    f"{side}_{joint}": value
+    for side in ("left", "right")
+    for joint, value in (
+      ("ankle_near_motor", near),
+      ("near_rod_pitch", near_rod_pitch),
+      ("ankle_far_motor", far),
+      ("far_rod_pitch", far_rod_pitch),
+    )
+  }
+
+
+# Solved numerically so the keyframe closes both loops to machine precision at
+# ankle pitch -0.35 (rod roll stays 0 for a symmetric pose).
+_HOME_LINKAGE = _linkage_pose(-0.327708, 0.394469, -0.328636, 0.35804)
+
+# The ankles are not policy joints: both cranks are actuated but held at their
+# HOME_KEYFRAME angles, which put the feet toes up (ankle pitch -0.35). With the
+# feet fixed at that angle the robot can crouch with the soles level and the
+# centre of mass well inside the feet, leaving room for strides (feet flat at
+# pitch 0 only allowed nearly straight legs).
 #
-# Nearly straight stance, so the flat feet are level with an upright torso
-# (hip + knee + ankle = 0) and stay under the centre of mass: with the ankles
-# fixed, a deeper bend moves the soles forward (hip -0.35 / knee 0.35 leaves the
-# CoM 28 mm from the heel and the robot falls backward). The knee bend of 0.1
-# stays inside its soft joint limit. The upper arms hang down and both elbows
-# bend 90 degrees forward (negative about +Y), clear of the torso and hip
-# housings. pos z puts the soles about 5 mm above the ground.
+# Crouched stance (hip + knee + ankle = 0, so the soles are level with an
+# upright torso). The upper arms hang down and both elbows bend 90 degrees
+# forward (negative about +Y), clear of the torso and hip housings.
 HOME_KEYFRAME = EntityCfg.InitialStateCfg(
-  pos=(0, 0, 0.70),
+  pos=(0, 0, 0.66),
   joint_pos={
     "left_elbow_pitch": -math.pi / 2,
     "right_elbow_pitch": -math.pi / 2,
-    "left_hip_pitch": -0.1,
-    "left_knee_pitch": 0.1,
-    "right_hip_pitch": -0.1,
-    "right_knee_pitch": 0.1,
+    "left_hip_pitch": -0.35,
+    "left_knee_pitch": 0.7,
+    "left_ankle_pitch": -0.35,
+    "right_hip_pitch": -0.35,
+    "right_knee_pitch": 0.7,
+    "right_ankle_pitch": -0.35,
+    **_HOME_LINKAGE,
   },
   joint_vel={".*": 0.0},
 )

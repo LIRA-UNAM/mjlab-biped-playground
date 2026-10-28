@@ -1,6 +1,6 @@
 <?xml version='1.0' encoding='utf-8'?>
-<mujoco model="Roomie full-body V4 PPO variant">
-  <compiler angle="radian" meshdir="v3/meshes" inertiafromgeom="false" alignfree="false" />
+<mujoco model="roomie">
+  <compiler angle="radian" meshdir="meshes" inertiafromgeom="false" alignfree="false" />
   <option timestep="0.001" integrator="implicitfast" solver="Newton" iterations="100" gravity="0 0 -9.81" />
   <statistic center="0 0 0.65" extent="1.7" />
   <visual>
@@ -2354,7 +2354,6 @@
   <worldbody>
     <light pos="1 -2 3" dir="-1 2 -3" diffuse=".8 .8 .8" />
     <light pos="-2 1 2" dir="2 -1 -2" diffuse=".4 .4 .4" />
-    <geom name="floor" type="plane" size="3 3 .1" contype="1" conaffinity="2" group="0" rgba=".89 .91 .92 1" solref="0.005 1" friction="0.8 0.02 0.001" />
     <body name="torso" pos="0 0 0.706371640655">
       <freejoint name="floating_base" />
       <inertial pos="-0.0029214257067 -0.00171277899233 0.238729541451" mass="6.0137" fullinertia="0.089385795423 0.065392663262 0.0414438987443 4.64384397892e-06 0.000576094487915 -0.000550979061418" />
@@ -2411,6 +2410,7 @@
                     <geom type="mesh" mesh="right_foot_structure_0" material="structure" name="right_foot_structure_0" />
                     <geom type="mesh" mesh="right_foot_metal_0" material="metal" name="right_foot_metal_0" />
                     <geom name="right_foot_contact" type="box" pos="-0.0198601926608 -7.17997760079e-06 -0.019138" size="0.111860192661 0.0450282712701 0.005" contype="2" conaffinity="1" group="3" friction="0.8 0.02 0.001" solref="0.005 1" rgba="0 .7 .2 .25" />
+                    <site name="right_foot" pos="-0.0198601926608 -7.17997760079e-06 -0.024138" size="0.005" />
                     <site name="right_near_rod_foot_anchor" pos="-0.071 -0.02802 0.032437" size=".002" />
                     <site name="right_far_rod_foot_anchor" pos="-0.071 0.02802 0.032437" size=".002" />
                     <geom name="self_collision_right_foot_structure_0_0" type="mesh" mesh="self_collision_right_foot_structure_0_0" mass="0" contype="4" conaffinity="124" group="4" margin="0.0003" friction="0.5 0.02 0.001" solref="0.005 1" solimp="0.95 0.99 0.001 0.5 2" rgba="0.8 0.2 0.1 0.25" />
@@ -3189,6 +3189,7 @@
                     <geom type="mesh" mesh="left_foot_structure_0" material="structure" name="left_foot_structure_0" />
                     <geom type="mesh" mesh="left_foot_metal_0" material="metal" name="left_foot_metal_0" />
                     <geom name="left_foot_contact" type="box" pos="-0.0198601926608 7.17997760079e-06 -0.019138" size="0.111860192661 0.0450282712701 0.005" contype="2" conaffinity="1" group="3" friction="0.8 0.02 0.001" solref="0.005 1" rgba="0 .7 .2 .25" />
+                    <site name="left_foot" pos="-0.0198601926608 7.17997760079e-06 -0.024138" size="0.005" />
                     <site name="left_near_rod_foot_anchor" pos="-0.071 0.02802 0.032437" size=".002" />
                     <site name="left_far_rod_foot_anchor" pos="-0.071 -0.02802 0.032437" size=".002" />
                     <geom name="self_collision_left_foot_structure_0_0" type="mesh" mesh="self_collision_left_foot_structure_0_0" mass="0" contype="4" conaffinity="124" group="4" margin="0.0003" friction="0.5 0.02 0.001" solref="0.005 1" solimp="0.95 0.99 0.001 0.5 2" rgba="0.8 0.2 0.1 0.25" />
@@ -4903,40 +4904,16 @@
     <exclude name="closure_right_far" body1="right_far_rod" body2="right_foot" />
   </contact>
   <equality>
-    <connect name="right_near_rod_closure" site1="right_near_rod_end" site2="right_near_rod_foot_anchor" solref="0.003 1" solimp="0.9 0.95 0.001 0.5 2" />
-    <connect name="right_far_rod_closure" site1="right_far_rod_end" site2="right_far_rod_foot_anchor" solref="0.003 1" solimp="0.9 0.95 0.001 0.5 2" />
-    <connect name="left_near_rod_closure" site1="left_near_rod_end" site2="left_near_rod_foot_anchor" solref="0.003 1" solimp="0.9 0.95 0.001 0.5 2" />
-    <connect name="left_far_rod_closure" site1="left_far_rod_end" site2="left_far_rod_foot_anchor" solref="0.003 1" solimp="0.9 0.95 0.001 0.5 2" />
+    <connect name="right_near_rod_closure" site1="right_near_rod_end" site2="right_near_rod_foot_anchor" solref="0.01 1" solimp="0.95 0.99 0.001" />
+    <connect name="right_far_rod_closure" site1="right_far_rod_end" site2="right_far_rod_foot_anchor" solref="0.01 1" solimp="0.95 0.99 0.001" />
+    <connect name="left_near_rod_closure" site1="left_near_rod_end" site2="left_near_rod_foot_anchor" solref="0.01 1" solimp="0.95 0.99 0.001" />
+    <connect name="left_far_rod_closure" site1="left_far_rod_end" site2="left_far_rod_foot_anchor" solref="0.01 1" solimp="0.95 0.99 0.001" />
   </equality>
-  <actuator>
-    <position name="waist_yaw_actuator" joint="waist_yaw" gear="1" kp="10" kv="0.1" ctrllimited="true" ctrlrange="-1.57 1.57" forcelimited="true" forcerange="-25 25" />
-    <position name="right_hip_pitch_actuator" joint="right_hip_pitch" gear="1" kp="10" kv="0.1" ctrllimited="true" ctrlrange="-2.345 2.2166" forcelimited="true" forcerange="-25 25" />
-    <position name="right_hip_roll_actuator" joint="right_hip_roll" gear="1" kp="10" kv="0.1" ctrllimited="true" ctrlrange="-0.889 0.2" forcelimited="true" forcerange="-25 25" />
-    <position name="right_hip_yaw_actuator" joint="right_hip_yaw" gear="1" kp="10" kv="0.1" ctrllimited="true" ctrlrange="-1 1" forcelimited="true" forcerange="-17.4 17.4" />
-    <position name="right_knee_pitch_actuator" joint="right_knee_pitch" gear="1" kp="10" kv="0.1" ctrllimited="true" ctrlrange="-0.05 2.1817" forcelimited="true" forcerange="-25 25" />
-    <position name="right_ankle_near_motor_actuator" joint="right_ankle_near_motor" gear="1" kp="10" kv="0.1" ctrllimited="true" ctrlrange="-1.5 1.5" forcelimited="true" forcerange="-17.4 17.4" />
-    <position name="right_ankle_far_motor_actuator" joint="right_ankle_far_motor" gear="1" kp="10" kv="0.1" ctrllimited="true" ctrlrange="-1.5 1.5" forcelimited="true" forcerange="-17.4 17.4" />
-    <position name="left_hip_pitch_actuator" joint="left_hip_pitch" gear="1" kp="10" kv="0.1" ctrllimited="true" ctrlrange="-2.345 2.2166" forcelimited="true" forcerange="-25 25" />
-    <position name="left_hip_roll_actuator" joint="left_hip_roll" gear="1" kp="10" kv="0.1" ctrllimited="true" ctrlrange="-0.2 0.889" forcelimited="true" forcerange="-25 25" />
-    <position name="left_hip_yaw_actuator" joint="left_hip_yaw" gear="1" kp="10" kv="0.1" ctrllimited="true" ctrlrange="-1 1" forcelimited="true" forcerange="-17.4 17.4" />
-    <position name="left_knee_pitch_actuator" joint="left_knee_pitch" gear="1" kp="10" kv="0.1" ctrllimited="true" ctrlrange="-0.05 2.1817" forcelimited="true" forcerange="-25 25" />
-    <position name="left_ankle_near_motor_actuator" joint="left_ankle_near_motor" gear="1" kp="10" kv="0.1" ctrllimited="true" ctrlrange="-1.5 1.5" forcelimited="true" forcerange="-17.4 17.4" />
-    <position name="left_ankle_far_motor_actuator" joint="left_ankle_far_motor" gear="1" kp="10" kv="0.1" ctrllimited="true" ctrlrange="-1.5 1.5" forcelimited="true" forcerange="-17.4 17.4" />
-    <position name="left_shoulder_pitch_actuator" joint="left_shoulder_pitch" gear="1" kp="10" kv="0.1" ctrllimited="true" ctrlrange="-3.29 1.18" forcelimited="true" forcerange="-17.4 17.4" />
-    <position name="left_shoulder_roll_actuator" joint="left_shoulder_roll" gear="1" kp="10" kv="0.1" ctrllimited="true" ctrlrange="-1.577 1.7055" forcelimited="true" forcerange="-17.4 17.4" />
-    <position name="left_shoulder_yaw_actuator" joint="left_shoulder_yaw" gear="1" kp="10" kv="0.1" ctrllimited="true" ctrlrange="-2.1402 1.6844" forcelimited="true" forcerange="-17.4 17.4" />
-    <position name="left_elbow_pitch_actuator" joint="left_elbow_pitch" gear="1" kp="10" kv="0.1" ctrllimited="true" ctrlrange="-2.234 2.234" forcelimited="true" forcerange="-17.4 17.4" />
-    <position name="right_shoulder_pitch_actuator" joint="right_shoulder_pitch" gear="1" kp="10" kv="0.1" ctrllimited="true" ctrlrange="-3.29 1.1868" forcelimited="true" forcerange="-17.4 17.4" />
-    <position name="right_shoulder_roll_actuator" joint="right_shoulder_roll" gear="1" kp="10" kv="0.1" ctrllimited="true" ctrlrange="-1.577 1.7055" forcelimited="true" forcerange="-17.4 17.4" />
-    <position name="right_shoulder_yaw_actuator" joint="right_shoulder_yaw" gear="1" kp="10" kv="0.1" ctrllimited="true" ctrlrange="-1.6844 2.1402" forcelimited="true" forcerange="-17.4 17.4" />
-    <position name="right_elbow_pitch_actuator" joint="right_elbow_pitch" gear="1" kp="10" kv="0.1" ctrllimited="true" ctrlrange="-2.234 2.234" forcelimited="true" forcerange="-17.4 17.4" />
-  </actuator>
   <sensor>
-    <framequat name="base_orientation" objtype="site" objname="base_reference" />
-    <framelinvel name="base_linear_velocity" objtype="site" objname="base_reference" />
-    <frameangvel name="base_angular_velocity" objtype="site" objname="base_reference" />
-    <framequat name="imu_orientation" objtype="site" objname="imu" />
-    <gyro name="imu_angular_velocity" site="imu" />
-    <accelerometer name="imu_acceleration" site="imu" />
+    <velocimeter name="imu_lin_vel" site="imu" />
+    <gyro name="imu_ang_vel" site="imu" />
+    <accelerometer name="imu_lin_acc" site="imu" />
+    <framequat name="orientation" objtype="site" objname="imu" />
+    <subtreeangmom name="root_angmom" body="torso" />
   </sensor>
 </mujoco>
