@@ -1,12 +1,12 @@
 """Roomie V3 velocity tracking environment configurations.
 
-Built on mjlab's ``make_velocity_env_cfg``. The policy controls 9 motors: the
-waist yaw and each leg's hip pitch/roll/yaw and knee. The ankles are not policy
-joints: both crank motors of each parallel linkage are held at their
-HOME_KEYFRAME angles (feet toes up), and the ankle pitch/roll and rod joints stay
-passive.
-The cranks and the arms are servoed to their HOME_KEYFRAME pose by a reset event
-that sets their position targets. Actuators: see ``roomie_constants``.
+Built on mjlab's ``make_velocity_env_cfg``. The policy controls 8 motors: each
+leg's hip pitch/roll/yaw and knee. The waist yaw is held straight (it does not
+help leg locomotion). The ankles are not policy joints: both crank motors of each
+parallel linkage are held at their HOME_KEYFRAME angles (feet toes up), and the
+ankle pitch/roll and rod joints stay passive.
+The waist, the cranks and the arms are servoed to their HOME_KEYFRAME pose by a
+reset event that sets their position targets. Actuators: see ``roomie_constants``.
 """
 
 import math
@@ -29,6 +29,7 @@ from playground.tasks.velocity.mdp.terrain import randomize_terrain_contact
 from mjlab.envs import ManagerBasedRlEnvCfg
 from mjlab.envs import mdp as envs_mdp
 from mjlab.envs.mdp.actions import JointPositionActionCfg
+from mjlab.managers.curriculum_manager import CurriculumTermCfg
 from mjlab.managers.event_manager import EventTermCfg
 from mjlab.managers.reward_manager import RewardTermCfg
 from mjlab.managers.scene_entity_config import SceneEntityCfg
@@ -57,29 +58,31 @@ _LEG_ACTUATOR_PATTERNS = (
 )
 
 # Actuated joints outside the action space, held at HOME_KEYFRAME by
-# hold_default_joint_targets: the arms and the ankle cranks (feet toes up).
+# hold_default_joint_targets: the waist (straight), the arms and the ankle
+# cranks (feet toes up).
+_WAIST_JOINT_PATTERNS = ("waist_yaw",)
 _ARM_JOINT_PATTERNS = (".*_shoulder_.*", ".*_elbow_.*")
 _ANKLE_CRANK_PATTERNS = (".*_ankle_near_motor", ".*_ankle_far_motor")
 
-# Waist + hips + knees: 9 motors are the action space.
-_ACTION_JOINT_PATTERNS = ("waist_yaw",) + _LEG_ACTUATOR_PATTERNS
+# Hips + knees: 8 motors are the action space.
+_ACTION_JOINT_PATTERNS = _LEG_ACTUATOR_PATTERNS
 
 _ROOMIE_ACTION_SCALE = {
   k: v for k, v in ROOMIE_ACTION_SCALE.items() if k in _ACTION_JOINT_PATTERNS
 }
 
 # Joints seen by the policy/critic (joint_pos, joint_vel) and given an encoder
-# bias: the 9 action joints in MJCF order. The arms, the held ankle cranks and
-# the passive ankle pitch/roll and rod joints of the closed loop are excluded.
+# bias: the 8 action joints in MJCF order. The waist, the arms, the held ankle
+# cranks and the passive ankle pitch/roll and rod joints of the closed loop are
+# excluded.
 OBS_JOINT_NAMES = tuple(
   n for n in ROOMIE_ACTUATED_JOINTS
-  if not any(part in n for part in ("_shoulder_", "_elbow_", "_ankle_"))
+  if n != "waist_yaw" and not any(part in n for part in ("_shoulder_", "_elbow_", "_ankle_"))
 )
 
-# Joints scored by the pose reward: the policy joints (the held ankles are not
-# controllable).
+# Joints scored by the pose reward: the policy joints (the held waist and ankles
+# are not controllable).
 _POSE_JOINT_PATTERNS = (
-  "waist_yaw",
   ".*_hip_pitch",
   ".*_hip_roll",
   ".*_hip_yaw",
@@ -168,8 +171,8 @@ def roomie_rough_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
   joint_pos_action.actuator_names = _ACTION_JOINT_PATTERNS
   joint_pos_action.scale = _ROOMIE_ACTION_SCALE
 
-  # Only the waist, hip and knee motors reach the policy: joint observations and
-  # encoder bias cover the 9 action joints (no arms or ankle joints).
+  # Only the hip and knee motors reach the policy: joint observations and
+  # encoder bias cover the 8 action joints (no waist, arm or ankle joints).
   obs_joints = SceneEntityCfg("robot", joint_names=OBS_JOINT_NAMES, preserve_order=True)
   for group in cfg.observations.values():
     for term_name in ("joint_pos", "joint_vel"):
@@ -186,14 +189,16 @@ def roomie_rough_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
   cfg.events["reset_robot_joints"].params["position_range"] = (-0.1, 0.1)
   cfg.events["reset_robot_joints"].params["velocity_range"] = (-0.1, 0.1)
 
-  # The arms and the ankle cranks are outside the action space; servo them to
-  # the HOME_KEYFRAME pose (feet toes up; resets zero every joint target).
+  # The waist, the arms and the ankle cranks are outside the action space; servo
+  # them to the HOME_KEYFRAME pose (waist straight, feet toes up; resets zero
+  # every joint target).
   cfg.events["hold_fixed_targets"] = EventTermCfg(
     func=hold_default_joint_targets,
     mode="reset",
     params={
       "asset_cfg": SceneEntityCfg(
-        "robot", joint_names=_ARM_JOINT_PATTERNS + _ANKLE_CRANK_PATTERNS
+        "robot",
+        joint_names=_WAIST_JOINT_PATTERNS + _ARM_JOINT_PATTERNS + _ANKLE_CRANK_PATTERNS,
       )
     },
   )
@@ -295,7 +300,7 @@ def roomie_rough_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
     params={"sensor_name": nonfoot_ground_cfg.name},
   )
 
-  # Restrict the pose reward to the waist and leg joints. variable_posture
+  # Restrict the pose reward to the hip and knee joints. variable_posture
   # builds its std tensors positionally aligned to asset_cfg's resolved joint
   # list, so every joint in that list must be covered by a std dict key. The
   # arms are not policy-controlled, and the passive linkage joints are excluded.
@@ -306,14 +311,12 @@ def roomie_rough_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
   # torso (about 1.5-2x the previous stds).
   cfg.rewards["pose"].params["std_standing"] = {".*": 0.1}
   cfg.rewards["pose"].params["std_walking"] = {
-    r"waist_yaw": 0.2,
     r".*_hip_pitch": 1.0,
     r".*_hip_roll": 0.35,
     r".*_hip_yaw": 0.35,
     r".*_knee_pitch": 1.0,
   }
   cfg.rewards["pose"].params["std_running"] = {
-    r"waist_yaw": 0.2,
     r".*_hip_pitch": 1.2,
     r".*_hip_roll": 0.4,
     r".*_hip_yaw": 0.4,
@@ -336,7 +339,17 @@ def roomie_rough_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
     weight=-1.0,
     params={"sensor_name": self_collision_cfg.name, "force_threshold": 10.0},
   )
-  # No action-rate curriculum: action_rate_l2 keeps the base weight (-0.1).
+  cfg.curriculum["action_rate_weight"] = CurriculumTermCfg(
+    func=envs_mdp.reward_curriculum,
+    params={
+      "reward_name": "action_rate_l2",
+      "stages": [
+        {"step": 0, "weight": -0.1},
+        {"step": 5000 * 24, "weight": -0.5},
+        {"step": 10000 * 24, "weight": -1.0},
+      ],
+    },
+  )
   # Apply play mode overrides.
   if play:
     # Effectively infinite episode length.

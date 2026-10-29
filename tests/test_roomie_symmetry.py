@@ -18,15 +18,15 @@ from playground.tasks.velocity.config.roomie.symmetry import (
   mirror_joint_name,
 )
 
-# The "joint_pos" action term targets the same 9 waist + hip + knee joints, in MJCF order.
+# The "joint_pos" action term targets the same 8 hip + knee joints, in MJCF order.
 ACTION_JOINT_NAMES = OBS_JOINT_NAMES
 
 ACTOR_TERMS = [
   ("base_ang_vel", 3),
   ("projected_gravity", 3),
-  ("joint_pos", 9),
-  ("joint_vel", 9),
-  ("actions", 9),
+  ("joint_pos", 8),
+  ("joint_vel", 8),
+  ("actions", 8),
   ("command", 3),
 ]
 CRITIC_EXTRA_TERMS = [
@@ -61,10 +61,11 @@ def _apply(x: torch.Tensor, perm: torch.Tensor, sign: torch.Tensor) -> torch.Ten
   return x[:, perm] * sign
 
 
-def test_obs_joints_are_waist_hips_and_knees():
-  assert len(OBS_JOINT_NAMES) == 9
-  assert OBS_JOINT_NAMES[0] == "waist_yaw"
-  assert not any(part in n for n in OBS_JOINT_NAMES for part in ("shoulder", "elbow", "ankle"))
+def test_obs_joints_are_hips_and_knees():
+  assert len(OBS_JOINT_NAMES) == 8
+  assert OBS_JOINT_NAMES[0] == "right_hip_pitch"
+  assert not any(
+    part in n for n in OBS_JOINT_NAMES for part in ("waist", "shoulder", "elbow", "ankle"))
 
 
 def test_mirror_joint_name():
@@ -86,7 +87,8 @@ def test_joint_mirror_signs():
   for name in OBS_JOINT_NAMES:
     flipped = name.endswith(("_roll", "_yaw"))
     assert sign_of[name] == (-1.0 if flipped else 1.0), name
-  assert sign_of["waist_yaw"] == -1.0
+  # The waist yaw flips, should it return to the joint list.
+  assert joint_mirror(("waist_yaw",))[1] == [-1.0]
   # The mirror still keeps the sign of both ankle cranks (axes along +y), should
   # they return to the joint list.
   _, crank_sign = joint_mirror(("left_ankle_near_motor", "right_ankle_near_motor"))
@@ -165,14 +167,15 @@ def test_env_spaces_exclude_the_ankles():
   action = cfg.actions["joint_pos"]
   assert isinstance(action, JointPositionActionCfg)
   assert not any("ankle" in p for p in action.actuator_names)
-  assert set(action.scale) == {
-    "waist_yaw", ".*_hip_pitch", ".*_hip_roll", ".*_hip_yaw", ".*_knee_pitch"}
+  assert set(action.scale) == {".*_hip_pitch", ".*_hip_roll", ".*_hip_yaw", ".*_knee_pitch"}
   held = cfg.events["hold_fixed_targets"].params["asset_cfg"].joint_names
   assert ".*_ankle_near_motor" in held and ".*_ankle_far_motor" in held
+  assert "waist_yaw" in held
   # The cranks hold the toes-up HOME_KEYFRAME ankle (pitch -0.35).
   assert HOME_KEYFRAME.joint_pos["left_ankle_pitch"] == pytest.approx(-0.35)
   assert HOME_KEYFRAME.joint_pos["left_ankle_near_motor"] != 0.0
-  # No action-rate curriculum; the pose reward scores only the action joints.
-  assert "action_rate_weight" not in cfg.curriculum
+  # Action-rate curriculum; the pose reward scores only the action joints.
+  assert "action_rate_weight" in cfg.curriculum
   pose_joints = cfg.rewards["pose"].params["asset_cfg"].joint_names
-  assert not any("ankle" in p or "shoulder" in p or "elbow" in p for p in pose_joints)
+  assert not any(
+    part in p for p in pose_joints for part in ("waist", "ankle", "shoulder", "elbow"))
