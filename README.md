@@ -91,6 +91,7 @@ The mirror lives in `config/k1/symmetry.py`. It derives its layout from the live
 ```bash
 # Install uv if you haven't already
 curl -LsSf https://astral.sh/uv/install.sh | sh
+source ~/.bashrc
 
 # Clone and run
 git clone https://github.com/LIRA-UNAM/mjlab-biped-playground.git
