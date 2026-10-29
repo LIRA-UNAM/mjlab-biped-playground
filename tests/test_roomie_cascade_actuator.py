@@ -170,3 +170,22 @@ def test_randomization_event_writes_only_the_reset_envs():
   for reset in (1, 3):
     assert torch.all((act.integral_gain[reset] >= 100.0) & (act.integral_gain[reset] <= 300.0))
     assert torch.all((act.backlash[reset] >= 0.0) & (act.backlash[reset] <= 0.004363))
+
+
+def test_scale_cascade_gains_scales_kp_ki_and_kv():
+  from playground.asset_zoo.robots.roomie.roomie_constants import (
+    ROOMIE_ACTION_SCALE,
+    ROOMIE_ARTICULATION,
+    scale_cascade_gains,
+  )
+
+  scaled = scale_cascade_gains(ROOMIE_ARTICULATION, kp_scale=4.0, kv_scale=2.25)
+  for base, new in zip(ROOMIE_ARTICULATION.actuators, scaled.actuators, strict=True):
+    assert new.stiffness == pytest.approx(4.0 * base.stiffness)
+    assert new.integral_gain == pytest.approx(4.0 * base.integral_gain)
+    assert new.damping == pytest.approx(2.25 * base.damping)
+    assert new.effort_limit == base.effort_limit
+    assert new.velocity_limit == base.velocity_limit
+  # The original articulation and the deployed action scale are unchanged.
+  assert ROOMIE_ARTICULATION.actuators[1].stiffness == pytest.approx(320.0)
+  assert ROOMIE_ACTION_SCALE[".*_hip_pitch"] == pytest.approx(0.25)

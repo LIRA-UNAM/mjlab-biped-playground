@@ -16,6 +16,7 @@ from playground.asset_zoo.robots.roomie.roomie_constants import (
   ROOMIE_ACTUATED_JOINTS,
   ROOMIE_FREE_RESET_JOINTS,
   get_roomie_robot_cfg,
+  scale_cascade_gains,
 )
 
 from playground.tasks.velocity.mdp.events import (
@@ -93,12 +94,21 @@ _TRUNK = "torso"
 _FEET = ("left_foot", "right_foot")
 
 
-def roomie_rough_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
-  """Create Roomie V3 rough terrain velocity tracking configuration."""
+def roomie_rough_env_cfg(
+  play: bool = False, kp_scale: float = 1.0, kv_scale: float = 1.0
+) -> ManagerBasedRlEnvCfg:
+  """Create Roomie V3 rough terrain velocity tracking configuration.
+
+  kp_scale / kv_scale scale the gains of every cascade actuator
+  (scale_cascade_gains), e.g. to match the identified robot actuators.
+  """
   cfg = make_velocity_env_cfg()
   remove_non_deployable_actor_terms(cfg)
 
-  cfg.scene.entities = {"robot": get_roomie_robot_cfg()}
+  robot = get_roomie_robot_cfg()
+  if kp_scale != 1.0 or kv_scale != 1.0:
+    robot.articulation = scale_cascade_gains(robot.articulation, kp_scale, kv_scale)
+  cfg.scene.entities = {"robot": robot}
 
   # Set raycast sensor frame to the Roomie torso.
   for sensor in cfg.scene.sensors or ():
@@ -379,9 +389,11 @@ def roomie_rough_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
   return cfg
 
 
-def roomie_flat_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
+def roomie_flat_env_cfg(
+  play: bool = False, kp_scale: float = 1.0, kv_scale: float = 1.0
+) -> ManagerBasedRlEnvCfg:
   """Create Roomie V3 flat terrain velocity tracking configuration."""
-  cfg = roomie_rough_env_cfg(play=play)
+  cfg = roomie_rough_env_cfg(play=play, kp_scale=kp_scale, kv_scale=kv_scale)
 
   # Switch to flat terrain.
   assert cfg.scene.terrain is not None

@@ -15,6 +15,7 @@ Actuator constants come from the SteadyWin GIM8108-36 / GIM6010-36 datasheets;
 the GIM6010-36 rotor inertia (and therefore its gains) is an estimate.
 """
 
+import dataclasses
 import math
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -26,7 +27,6 @@ from mjlab.utils.spec_config import CollisionCfg
 
 from playground.asset_zoo.robots.k1.actuators import (
   ActuatorConfig,
-  MotorPositionActuatorCfg,
 )
 from playground.asset_zoo.robots.roomie.actuators import SteadywinCascadeActuatorCfg
 
@@ -257,31 +257,8 @@ FEET_ONLY_COLLISION = CollisionCfg(
 )
 
 
-# All Roomie articulations get the same scale rule for the joint position
-# action: 0.25 * effort_limit / stiffness per joint group.
-_ACTION_SCALE_FACTOR = 0.25
-
 # Shared delay parameters for all joint groups.
 ACTUATOR_DELAY = dict(delay_min_lag=2, delay_max_lag=8, delay_hold_prob=0.3)
-
-
-def _build_action_scale(
-  articulation: EntityArticulationInfoCfg, factor: float = _ACTION_SCALE_FACTOR
-) -> dict[str, float]:
-  """Build joint-name -> scale dict from an articulation tuple.
-
-  Each actuator group must expose ``effort_limit`` and ``stiffness``. The same
-  scale (factor * effort_limit / stiffness) is applied to every joint matched
-  by that group's regex.
-  """
-  out: dict[str, float] = {}
-  for a in articulation.actuators:
-    e = a.effort_limit
-    s = a.stiffness
-    assert e is not None
-    for n in a.target_names_expr:
-      out[n] = factor * e / s
-  return out
 
 
 ##
@@ -328,8 +305,9 @@ ROTOR_INERTIA_GIM6010 = ROTOR_INERTIA_GIM8108 * (76.0 / 96.0) ** 3
 ARMATURE_GIM8108 = ROTOR_INERTIA_GIM8108 * _GEAR_RATIO**2
 ARMATURE_GIM6010 = ROTOR_INERTIA_GIM6010 * _GEAR_RATIO**2
 
-# PD gains from reflected inertia, as in the G1: 10 Hz natural frequency,
-# damping ratio 2.
+# Nominal PD from reflected inertia, as in the G1: 10 Hz natural frequency,
+# damping ratio 2. Only motor metadata now: the simulation applies the cascade
+# gains below, and the action scale is ROOMIE_ACTION_SCALE.
 NATURAL_FREQ = 10 * 2.0 * math.pi
 DAMPING_RATIO = 2.0
 
@@ -366,45 +344,21 @@ ACTUATOR_GIM6010 = ActuatorConfig(
 ##
 
 
-def _actuator_cfg(
-  target_names_expr: tuple[str, ...], a: ActuatorConfig
-) -> MotorPositionActuatorCfg:
-  return MotorPositionActuatorCfg(
-    motor=a,
-    target_names_expr=target_names_expr,
-    effort_limit=a.effort_limit,
-    armature=a.armature,
-    stiffness=a.stiffness,
-    damping=a.damping,
-    **ACTUATOR_DELAY,
-  )
-
-
-# Nominal per-motor PD (datasheet armature, 10 Hz / damping ratio 2). It is no
-# longer what the simulation applies; it only defines the joint position action
-# scale (0.25 * effort_limit / stiffness), which the deployed policy nodes use.
-ROOMIE_ACTUATOR_GIM8108 = _actuator_cfg(
-  ("waist_yaw", ".*_hip_pitch", ".*_hip_roll", ".*_knee_pitch"), ACTUATOR_GIM8108
-)
-ROOMIE_ACTUATOR_GIM6010 = _actuator_cfg(
-  (
-    ".*_hip_yaw",
-    ".*_ankle_near_motor",
-    ".*_ankle_far_motor",
-    ".*_shoulder_.*",
-    ".*_elbow_.*",
-  ),
-  ACTUATOR_GIM6010,
-)
-ROOMIE_NOMINAL_ARTICULATION = EntityArticulationInfoCfg(
-  actuators=(
-    ROOMIE_ACTUATOR_GIM8108,
-    ROOMIE_ACTUATOR_GIM6010,
-  ),
-  soft_joint_pos_limit_factor=0.9,
-)
-
-ROOMIE_ACTION_SCALE = _build_action_scale(ROOMIE_NOMINAL_ARTICULATION)
+# Joint position action scale (rad per unit of policy output): target =
+# default + scale * a. Chosen so that outputs of about +-1 to 2 cover a normal
+# gait (hip pitch about +-0.5 rad, knee 0.5-1.0 rad), in the range of the G1's
+# scales (0.35-0.55) for Roomie's shorter leg. It replaced the mjlab rule
+# 0.25 * effort_limit / stiffness of the old nominal PD (0.0701), which no longer
+# reflected the cascade actuators and forced raw outputs of about 6-14 for a
+# gait. The deployed roomie_ppowalk node uses the same values (YAML action_scale).
+ROOMIE_ACTION_SCALE: dict[str, float] = {
+  ".*_hip_pitch": 0.25,
+  ".*_knee_pitch": 0.25,
+  ".*_hip_roll": 0.15,
+  ".*_hip_yaw": 0.15,
+  # Held joints (not in the action space).
+  "waist_yaw": 0.15,
+}
 
 
 ##
@@ -473,6 +427,30 @@ ROOMIE_ARTICULATION = EntityArticulationInfoCfg(
   ),
   soft_joint_pos_limit_factor=0.9,
 )
+
+
+def scale_cascade_gains(
+  articulation: EntityArticulationInfoCfg, kp_scale: float = 1.0, kv_scale: float = 1.0
+) -> EntityArticulationInfoCfg:
+  """Copy of ``articulation`` with every cascade actuator's gains scaled.
+
+  kp (stiffness) and the position-loop integral gain scale by ``kp_scale``, so
+  ki/kp stays as identified; kv (damping, the speed-loop gain) by ``kv_scale``.
+  The action scale (ROOMIE_ACTION_SCALE) is unaffected.
+  """
+  assert kp_scale > 0.0 and kv_scale > 0.0
+  actuators = tuple(
+    dataclasses.replace(
+      a,
+      stiffness=a.stiffness * kp_scale,
+      damping=a.damping * kv_scale,
+      integral_gain=a.integral_gain * kp_scale,
+    )
+    if isinstance(a, SteadywinCascadeActuatorCfg)
+    else a
+    for a in articulation.actuators
+  )
+  return dataclasses.replace(articulation, actuators=actuators)
 
 
 def get_roomie_robot_cfg(

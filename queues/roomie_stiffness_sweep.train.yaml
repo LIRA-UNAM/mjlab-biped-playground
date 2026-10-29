@@ -1,0 +1,19 @@
+# Roomie V3 flat velocity task with the actuator gains scaled towards the
+# identified robot actuators (left hip pitch step responses fitted with
+# `uv run step_response_fit`: best kp x4.0, kv x2.25 of the training gains).
+# Damping stays at the fitted x2.25; stiffness sweeps around the fit.
+# Run with: uv run train_queue queues/roomie_stiffness_sweep.train.yaml
+
+defaults:
+  num_envs: 4096
+  extra_args: []
+
+stop_on_failure: false
+
+tasks:
+  - task: Pumas-Velocity-Flat-Roomie-V3-PPO-Kp2    # kp x2.0, kv x2.25
+  - task: Pumas-Velocity-Flat-Roomie-V3-PPO-Kp3    # kp x3.0, kv x2.25
+  - task: Pumas-Velocity-Flat-Roomie-V3-PPO-Kp3.5  # kp x3.5, kv x2.25
+  - task: Pumas-Velocity-Flat-Roomie-V3-PPO-Kp4    # kp x4.0, kv x2.25 (best fit)
+  - task: Pumas-Velocity-Flat-Roomie-V3-PPO-Kp5    # kp x5.0, kv x2.25
+  - task: Pumas-Velocity-Flat-Roomie-V3-PPO-Kp6    # kp x6.0, kv x2.25

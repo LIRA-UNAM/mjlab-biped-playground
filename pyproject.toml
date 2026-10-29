@@ -73,6 +73,8 @@ viser = "playground.scripts.play:main"
 list_envs = "mjlab.scripts.list_envs:main"
 train_queue = "playground.scripts.train_queue:main"
 export_onnx = "playground.scripts.export_onnx:main"
+step_response_compare = "playground.scripts.step_response_compare:main"
+step_response_fit = "playground.scripts.step_response_compare:fit_main"
 
 [project.entry-points."mjlab.tasks"]
 playground = "playground"
